@@ -3,6 +3,8 @@ use std::{fs::File, io::{BufReader, Read}};
 use clap::Parser;
 use colored::Colorize;
 
+use cimi::*;
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -15,7 +17,7 @@ fn main() {
     println!("{} version {VERSION}", "CimiLang Frontend".bold());
 
     let args = Args::parse();
-    
+        
     let fp = File::open(&args.file).expect("failed to open file");
     let mut br = BufReader::new(fp);
 
