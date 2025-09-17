@@ -21,8 +21,7 @@ endif
 cimi: $(OBJ) $(HEADERS)
 	$(CC) $(CFLAGS) -o cimi $(OBJ)
 
-a_string.o: a_string.h
-main.o: common.h
+%.o: %.h
 
 tarball:
 	mkdir -p cimi
@@ -33,6 +32,6 @@ tarball:
 distclean: clean cleandeps
 
 clean:
-	rm -rf cimi cimi.tar.gz cimi *.8Xv *.8xv $(OBJ)
+	rm -rf cimi cimi.tar.gz cimi $(OBJ)
 
 .PHONY: clean cleanall

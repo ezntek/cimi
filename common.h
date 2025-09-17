@@ -78,8 +78,7 @@ typedef double f64;
                 "\"%s\": ",                                                    \
                 __LINE__, __func__, __FILE__);                                 \
         eprintf(__VA_ARGS__);                                                  \
-        eprintf(S_DIM                                                          \
-                "\n       please report this to the developer.\n" S_END);      \
+        eprintf("\n");                                                         \
         exit(1);                                                               \
     } while (0);
 

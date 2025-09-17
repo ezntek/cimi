@@ -14,8 +14,15 @@
 #include "common.h"
 
 i32 main(i32 argc, char* argv[argc]) {
-    a_string s = astr("hello, world");
-    as_println(&s);
+    argv++;
+    argc--;
+
+    if (argc == 0) {
+        panic("no file");
+    }
+
+    a_string s = as_read_file(argv[0]);
+    as_print(&s);
     as_free(&s);
     return 0;
 }

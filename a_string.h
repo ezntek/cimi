@@ -135,7 +135,7 @@ a_string as_dupe(const a_string* s);
  * @param format the format
  * @param ... format args
  */
-a_string as_asprintf(const char* restrict format, ...);
+a_string as_asprintf(const char* format, ...);
 
 /**
  * similar to sprintf, but for an a_string.
@@ -149,7 +149,7 @@ a_string as_asprintf(const char* restrict format, ...);
  * @param format the format
  * @param ... format args
  */
-size_t as_sprintf(a_string* dest, const char* restrict format, ...);
+size_t as_sprintf(a_string* dest, const char* format, ...);
 
 /**
  * prints an a_string to a file stream.
@@ -158,7 +158,7 @@ size_t as_sprintf(a_string* dest, const char* restrict format, ...);
  * @param stream the stream
  * @return number of bytes written
  */
-int as_fprint(const a_string* s, FILE* restrict stream);
+int as_fprint(const a_string* s, FILE* stream);
 
 /**
  * prints an a_string to a file stream, with a newline.
@@ -167,7 +167,7 @@ int as_fprint(const a_string* s, FILE* restrict stream);
  * @param stream the stream
  * @return number of bytes written
  */
-int as_fprintln(const a_string* s, FILE* restrict stream);
+int as_fprintln(const a_string* s, FILE* stream);
 
 /**
  * prints an a_string to stdout.
@@ -198,7 +198,7 @@ int as_println(const a_string* s);
  * @param cap the maximum capacity of the string to be entered.
  * @param stream the file stream.
  */
-char* as_fgets(a_string* buf, size_t cap, FILE* restrict stream);
+char* as_fgets(a_string* buf, size_t cap, FILE* stream);
 
 /**
  * reads a single line from a file.
@@ -211,7 +211,7 @@ char* as_fgets(a_string* buf, size_t cap, FILE* restrict stream);
  * @return true on success, false on error or EOF while no characters have been
  * read.
  */
-bool as_read_line(a_string* buf, FILE* restrict stream);
+bool as_read_line(a_string* buf, FILE* stream);
 
 /**
  * reads the entirety of a file into an a_string.
