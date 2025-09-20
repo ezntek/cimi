@@ -86,7 +86,7 @@ void as_copy_cstr(a_string* dest, const char* src);
 void as_ncopy(a_string* dest, const a_string* src, size_t chars);
 
 /**
- * Copies N bytes of one C string to another.
+ * Copies N bytes of one C string to an a_string.
  *
  * @param dest the dest string
  * @param src the source string
@@ -277,7 +277,6 @@ void as_append_cstr(a_string* s, const char* new);
  *
  * shorthand form of `as_append_cstr()`.
  *
- * @param s the target string to be concatenated
  * @param new the string to add on. This string will be kept intact and will not
  * be freed.
  */

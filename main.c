@@ -7,6 +7,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+#include "lexer.h"
 #define _POSIX_C_SOURCE 200809L
 #define _GNU_SOURCE
 
@@ -22,7 +23,22 @@ i32 main(i32 argc, char* argv[argc]) {
     }
 
     a_string s = as_read_file(argv[0]);
-    as_print(&s);
+
+    Lexer l = lx_new(s.data, s.len);
+
+    Token* tok = {0};
+    do {
+        tok = lx_next_token(&l);
+
+        if (!tok) {
+            lx_perror(l.error, "\033[31;1mlexer error\033[0m");
+            break;
+        }
+
+        token_print_long(tok);
+        token_free(tok);
+    } while (tok->kind != TOK_EOF);
+
     as_free(&s);
     return 0;
 }

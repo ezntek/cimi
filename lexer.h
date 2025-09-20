@@ -14,49 +14,38 @@
 #include "common.h"
 
 typedef enum {
+    LX_ERROR_NULL = 0,
+    LX_ERROR_UNTERMINATED_LITERAL,
+    LX_ERROR_EOF,
+} LexerError;
+
+typedef enum {
+    TOK_IDENT = 0,
+    TOK_EOF,
+
     // Keywords
-    TOK_DECLARE,
-    TOK_CONSTANT,
-    TOK_OUTPUT,
-    TOK_INPUT,
+    TOK_VAR,
+    TOK_CONST,
+    TOK_ECHO,
+    TOK_READ,
     TOK_AND,
     TOK_OR,
     TOK_NOT,
     TOK_IF,
     TOK_THEN,
     TOK_ELSE,
-    TOK_ENDIF,
+    TOK_END,
+    TOK_SWITCH,
     TOK_CASE,
-    TOK_OF,
-    TOK_OTHERWISE,
-    TOK_ENDCASE,
+    TOK_DEFAULT,
     TOK_WHILE,
-    TOK_DO,
-    TOK_ENDWHILE,
-    TOK_REPEAT,
-    TOK_UNTIL,
     TOK_FOR,
-    TOK_TO,
-    TOK_STEP,
-    TOK_NEXT,
-    TOK_PROCEDURE,
-    TOK_ENDPROCEDURE,
-    TOK_CALL,
-    TOK_FUNCTION,
+    TOK_FN,
     TOK_RETURN,
-    TOK_RETURNS,
-    TOK_ENDFUNCTION,
-    TOK_OPENFILE,
-    TOK_READFILE,
-    TOK_WRITEFILE,
-    TOK_CLOSEFILE,
-    TOK_MOD,
     TOK_INCLUDE,
-    TOK_INCLUDE_FFI,
     TOK_EXPORT,
-    TOK_SCOPE,
-    TOK_ENDSCOPE,
-    TOK_PRINT,
+    TOK_BREAK,
+    TOK_CONTINUE,
 
     // TYPES
     TOK_INT,
@@ -75,6 +64,7 @@ typedef enum {
     TOK_RCURLY,
     TOK_COMMA,
     TOK_COLON,
+    TOK_SEMICOLON,
 
     // Operators
     TOK_ADD,
@@ -83,16 +73,21 @@ typedef enum {
     TOK_DIV,
     TOK_PERCENT,
     TOK_CARET,
+    TOK_TILDE,
     TOK_LT,
     TOK_GT,
     TOK_LEQ,
-    TOK_REQ,
+    TOK_GEQ,
     TOK_EQ,
     TOK_NEQ,
     TOK_ASSIGN,
+    TOK_SHR,
+    TOK_SHL,
 
-    TOK_IDENT,
-    TOK_EOF,
+    TOK_ADD_ASSIGN,
+    TOK_SUB_ASSIGN,
+    TOK_MUL_ASSIGN,
+    TOK_DIV_ASSIGN,
 } TokenKind;
 
 typedef struct {
@@ -107,15 +102,13 @@ typedef struct {
     union {
         a_string string;
         u8 null;
-    } ident;
+    } data;
 } Token;
 
-#define TOKEN(k)                                                               \
-    (Token) {                                                                  \
-        .kind = TOK_##k, .ident = { NULL }                                     \
-    }
-
 Token token_new_ident(const char* str);
+a_string token_kind_to_string(TokenKind k);
+void token_print_long(Token* t);
+void token_print(Token* t);
 
 // free heap allocated data.
 // of course, you can still read the kind if you have to.
@@ -125,8 +118,11 @@ typedef struct {
     const char* src;
     usize src_len;
 
-    // current token (public access)
+    // current token (public)
     Token token;
+
+    // error (public)
+    LexerError error;
 
     // internal lexer state
     u32 cur;
@@ -136,6 +132,9 @@ typedef struct {
 
 Lexer lx_new(const char* src, usize src_len);
 Token* lx_next_token(Lexer* l);
+char* lx_strerror(LexerError e);
+a_string lx_as_strerror(LexerError e);
+void lx_perror(LexerError e, const char* pre);
 void lx_reset(Lexer* l);
 
 #endif // _LEXER_H

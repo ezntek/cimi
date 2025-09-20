@@ -2,13 +2,13 @@ CC ?= cc
 LD ?= ld
 INCLUDE = 
 
-SRC = a_string.c main.c 
-OBJ = a_string.o main.o 
-HEADERS = common.h a_string.h a_vector.h
+SRC = a_string.c lexer.c 
+OBJ = $(SRC:.c=.o)
+HEADERS = common.h a_vector.h $(SRC:.c=.h)
 
 RELEASE_CFLAGS = -O2 -Wall -Wextra -pedantic $(INCLUDE) 
 DEBUG_CFLAGS = -O0 -g -Wall -Wextra -pedantic -fno-stack-protector -fsanitize=address $(INCLUDE)
-TARBALLFILES = Makefile LICENSE.md README.md $(SRC) 
+TARBALLFILES = Makefile LICENSE.md README.md $(SRC) $(HEADERS) main.c 
 
 TARGET=debug
 
@@ -18,10 +18,14 @@ else
 	CFLAGS=$(RELEASE_CFLAGS)
 endif
 
-cimi: $(OBJ) $(HEADERS)
-	$(CC) $(CFLAGS) -o cimi $(OBJ)
+cimi: $(OBJ) $(HEADERS) main.o
+	$(CC) $(CFLAGS) -o cimi main.o $(OBJ)
 
-%.o: %.h
+main.o: main.c common.h
+	$(CC) -c $(CFLAGS) $< -o $@
+
+%.o: %.c %.h common.h
+	$(CC) -c $(CFLAGS) $< -o $@
 
 tarball:
 	mkdir -p cimi
