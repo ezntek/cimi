@@ -22,6 +22,7 @@ typedef enum {
 typedef enum {
     TOK_IDENT = 0,
     TOK_EOF,
+    TOK_INVALID, // internal use only!!
 
     // Keywords
     TOK_VAR,
@@ -132,6 +133,8 @@ typedef struct {
 
 Lexer lx_new(const char* src, usize src_len);
 Token* lx_next_token(Lexer* l);
+void lx_free(Lexer* l);
+
 char* lx_strerror(LexerError e);
 a_string lx_as_strerror(LexerError e);
 void lx_perror(LexerError e, const char* pre);

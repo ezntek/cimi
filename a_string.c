@@ -41,7 +41,9 @@ a_string as_with_capacity(size_t cap) {
     return res;
 }
 
-void as_clear(a_string* s) { memset(s->data, '\0', s->cap); }
+void as_clear(a_string* s) {
+    memset(s->data, '\0', s->cap);
+}
 
 void as_free(a_string* s) {
     if (!as_valid(s)) {
@@ -95,8 +97,9 @@ void as_ncopy(a_string* dest, const a_string* src, size_t chars) {
     if (chars > dest->cap) {
         as_reserve(dest, chars);
     }
+    as_clear(dest);
 
-    strncpy(dest->data, src->data, chars);
+    stpncpy(dest->data, src->data, chars);
     dest->len = chars;
 }
 
@@ -106,11 +109,12 @@ void as_ncopy_cstr(a_string* dest, const char* src, size_t chars) {
     if (src == NULL)
         panic("source C string is null!");
 
-    if (chars > dest->cap) {
-        as_reserve(dest, chars);
+    if (chars + 1 > dest->cap) {
+        as_reserve(dest, chars + 1);
     }
+    as_clear(dest);
 
-    strncpy(dest->data, src, chars);
+    stpncpy(dest->data, src, chars);
     dest->len = chars;
 }
 
@@ -143,7 +147,9 @@ a_string as_from_cstr(const char* cstr) {
     return res;
 }
 
-a_string astr(const char* cstr) { return as_from_cstr(cstr); }
+a_string astr(const char* cstr) {
+    return as_from_cstr(cstr);
+}
 
 a_string as_dupe(const a_string* s) {
     if (!as_valid(s))
@@ -201,9 +207,13 @@ int as_fprintln(const a_string* s, FILE* restrict stream) {
     return fprintf(stream, "%.*s\n", (int)s->len, s->data);
 }
 
-int as_print(const a_string* s) { return as_fprint(s, stdout); }
+int as_print(const a_string* s) {
+    return as_fprint(s, stdout);
+}
 
-int as_println(const a_string* s) { return as_fprintln(s, stdout); }
+int as_println(const a_string* s) {
+    return as_fprintln(s, stdout);
+}
 
 char* as_fgets(a_string* buf, size_t cap, FILE* restrict stream) {
     size_t actual_cap = (cap == 0) ? 8192 : cap;
@@ -318,7 +328,9 @@ void as_append_astr(a_string* s, const a_string* new) {
     as_append_cstr(s, new->data);
 }
 
-void as_append(a_string* s, const char* new) { as_append_cstr(s, new); }
+void as_append(a_string* s, const char* new) {
+    as_append_cstr(s, new);
+}
 
 char as_pop(a_string* s) {
     if (!as_valid(s))
@@ -468,10 +480,12 @@ a_string as_toupper(const a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    a_string res = as_with_capacity(s->cap);
+    a_string res = as_with_capacity(s->len + 1);
     for (size_t i = 0; i < s->len; i++) {
         res.data[i] = toupper(s->data[i]);
     }
+    res.len = s->len;
+
     return res;
 }
 
@@ -479,10 +493,12 @@ a_string as_tolower(const a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    a_string res = as_with_capacity(s->cap);
+    a_string res = as_with_capacity(s->len + 1);
     for (size_t i = 0; i < s->len; i++) {
         res.data[i] = tolower(s->data[i]);
     }
+    res.len = s->len;
+
     return res;
 }
 

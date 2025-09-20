@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "3rdparty/uthash.h"
 #include "a_string.h"
 #include "common.h"
 #include "lexer.h"
@@ -36,6 +37,11 @@
 #define TOKEN(k, sp)                                                           \
     (Token) {                                                                  \
         .kind = TOK_##k, .data = {{NULL}}, .pos = (POS(sp))                    \
+    }
+
+#define TOKEN_FROM(kfull, sv, sp)                                              \
+    (Token) {                                                                  \
+        .kind = kfull, .data = {{NULL}}, .pos = (POS_FROM(sv, sp))             \
     }
 
 #define ERROR_BUFSZ 128
@@ -64,6 +70,9 @@ a_string token_kind_to_string(TokenKind k) {
         } break;
         case TOK_EOF: {
             s = "eof";
+        } break;
+        case TOK_INVALID: {
+            s = "!!! BOGUS AMOGUS INVALID TOKEN !!!";
         } break;
         case TOK_VAR: {
             s = "var";
@@ -258,6 +267,79 @@ void token_print(Token* t) {
 }
 
 // lexer stuff
+#define LX_KWT_STRSZ 64
+
+typedef struct {
+    char txt[LX_KWT_STRSZ];
+    TokenKind kw;
+    UT_hash_handle hh;
+} KeywordTable;
+
+KeywordTable* kwt;
+
+static void lx_kwt_setup(void);
+static void lx_kwt_add(const char* s, TokenKind k);
+static TokenKind lx_kwt_get(const char* s);
+static void lx_kwt_free(void);
+
+static void lx_kwt_setup(void) {
+    kwt = NULL;
+
+    lx_kwt_add("var", TOK_VAR);
+    lx_kwt_add("const", TOK_CONST);
+    lx_kwt_add("echo", TOK_ECHO);
+    lx_kwt_add("read", TOK_READ);
+    lx_kwt_add("and", TOK_AND);
+    lx_kwt_add("or", TOK_OR);
+    lx_kwt_add("not", TOK_NOT);
+    lx_kwt_add("if", TOK_IF);
+    lx_kwt_add("then", TOK_THEN);
+    lx_kwt_add("else", TOK_ELSE);
+    lx_kwt_add("end", TOK_END);
+    lx_kwt_add("switch", TOK_SWITCH);
+    lx_kwt_add("case", TOK_CASE);
+    lx_kwt_add("default", TOK_DEFAULT);
+    lx_kwt_add("while", TOK_WHILE);
+    lx_kwt_add("for", TOK_FOR);
+    lx_kwt_add("fn", TOK_FN);
+    lx_kwt_add("return", TOK_RETURN);
+    lx_kwt_add("include", TOK_INCLUDE);
+    lx_kwt_add("export", TOK_EXPORT);
+    lx_kwt_add("break", TOK_BREAK);
+    lx_kwt_add("continue", TOK_CONTINUE);
+    lx_kwt_add("int", TOK_INT);
+    lx_kwt_add("float", TOK_FLOAT);
+    lx_kwt_add("bool", TOK_BOOL);
+    lx_kwt_add("string", TOK_STRING);
+    lx_kwt_add("char", TOK_CHAR);
+    lx_kwt_add("null", TOK_NULL);
+}
+
+static void lx_kwt_add(const char* s, TokenKind k) {
+    KeywordTable* row = malloc(sizeof(KeywordTable));
+    check_alloc(row);
+    strncpy(row->txt, s, LX_KWT_STRSZ);
+    row->kw = k;
+    HASH_ADD_STR(kwt, txt, row);
+}
+
+static TokenKind lx_kwt_get(const char* s) {
+    KeywordTable* out;
+    HASH_FIND_STR(kwt, s, out);
+    if (out)
+        return out->kw;
+    else
+        return TOK_INVALID;
+}
+
+static void lx_kwt_free(void) {
+    KeywordTable *elem, *tmp;
+
+    HASH_ITER(hh, kwt, elem, tmp) {
+        HASH_DEL(kwt, elem);
+        free(elem);
+    }
+}
 
 static void lx_trim_spaces(Lexer* l);
 static void lx_trim_comment(Lexer* l);
@@ -267,16 +349,18 @@ static bool lx_is_operator_start(char ch);
 static bool lx_next_double_symbol(Lexer* l); // true if found
 static bool lx_next_single_symbol(Lexer* l); // true if found
 static bool lx_next_word(Lexer* l, a_string* res);
+static bool lx_next_keyword(Lexer* l, u32 saved_point, const a_string* word);
 
 static bool lx_is_separator(char ch) {
     return strchr("{}[]();:,", ch);
 }
 
 static bool lx_is_operator_start(char ch) {
-    return strchr("+-*/=<>^", ch);
+    return strchr("+-*/=<>^!", ch);
 }
 
 Lexer lx_new(const char* src, usize src_len) {
+    lx_kwt_setup();
     Lexer res = {.src = src, .src_len = src_len, .row = 1};
     return res;
 }
@@ -444,6 +528,22 @@ static bool lx_next_word(Lexer* l, a_string* res) {
     return true;
 }
 
+static bool lx_next_keyword(Lexer* l, u32 saved_point, const a_string* word) {
+    if (word->len >= LX_KWT_STRSZ)
+        return false;
+
+    TokenKind kw;
+    a_string word_lower = as_tolower(word);
+    if ((kw = lx_kwt_get(word_lower.data)) != TOK_INVALID) {
+        l->token = TOKEN_FROM(kw, saved_point, word_lower.len);
+        as_free(&word_lower);
+        return true;
+    } else {
+        as_free(&word_lower);
+        return false;
+    }
+}
+
 Token* lx_next_token(Lexer* l) {
     token_free(&l->token);
     l->token = (Token){0};
@@ -468,6 +568,11 @@ Token* lx_next_token(Lexer* l) {
     if (!lx_next_word(l, &word)) // error
         return NULL;
 
+    if (lx_next_keyword(l, saved_point, &word)) {
+        as_free(&word);
+        goto success;
+    }
+
     l->token = (Token){
         .kind = TOK_IDENT,
         .data.string = word,
@@ -476,6 +581,11 @@ Token* lx_next_token(Lexer* l) {
 
 success:
     return &l->token;
+}
+
+void lx_free(Lexer* l) {
+    (void)l;
+    lx_kwt_free();
 }
 
 char* lx_strerror(LexerError e) {

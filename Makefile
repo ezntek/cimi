@@ -8,9 +8,20 @@ HEADERS = common.h a_vector.h $(SRC:.c=.h)
 
 RELEASE_CFLAGS = -O2 -Wall -Wextra -pedantic $(INCLUDE) 
 DEBUG_CFLAGS = -O0 -g -Wall -Wextra -pedantic -fno-stack-protector -fsanitize=address $(INCLUDE)
-TARBALLFILES = Makefile LICENSE.md README.md $(SRC) $(HEADERS) main.c 
+TARBALLFILES = Makefile LICENSE.md README.md 3rdparty $(SRC) $(HEADERS) main.c 
 
 TARGET=debug
+
+ifeq (,$(filter clean cleandeps,$(MAKECMDGOALS)))
+
+# goodbye windowze™
+ifeq ($(OS),Windows_NT)
+$(error building on Windows is not supported.)
+endif
+
+ifeq (,$(shell command -v curl))
+$(error curl is not installed on your system.)
+endif
 
 ifeq ($(TARGET),debug)
 	CFLAGS=$(DEBUG_CFLAGS)
@@ -18,7 +29,9 @@ else
 	CFLAGS=$(RELEASE_CFLAGS)
 endif
 
-cimi: $(OBJ) $(HEADERS) main.o
+endif
+
+cimi: deps $(OBJ) $(HEADERS) main.o
 	$(CC) $(CFLAGS) -o cimi main.o $(OBJ)
 
 main.o: main.c common.h
@@ -26,6 +39,14 @@ main.o: main.c common.h
 
 %.o: %.c %.h common.h
 	$(CC) -c $(CFLAGS) $< -o $@
+
+dep_uthash:
+	mkdir -p 3rdparty/
+	if [ ! -f 3rdparty/uthash.h ]; then \
+		curl -fL -o 3rdparty/uthash.h https://raw.githubusercontent.com/troydhanson/uthash/refs/heads/master/src/uthash.h; \
+	fi
+
+deps: dep_uthash
 
 tarball:
 	mkdir -p cimi
