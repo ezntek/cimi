@@ -25,12 +25,12 @@
 #define IN_BOUNDS (l->cur < l->src_len)
 #define POS(sp)                                                                \
     (Pos) {                                                                    \
-        .row = l->row, .col = l->cur - l->bol, .span = sp                      \
+        .row = l->row, .col = l->cur - l->bol + 1, .span = sp                  \
     }
 
 #define POS_FROM(sv, sp)                                                       \
     (Pos) {                                                                    \
-        .row = l->row, .col = sv - l->bol, .span = sp                          \
+        .row = l->row, .col = sv - l->bol + 1, .span = sp                      \
     }
 
 #define TOKEN(k, sp)                                                           \
@@ -286,11 +286,12 @@ static void lx_trim_spaces(Lexer* l) {
         return;
     }
 
-    while (l->cur < l->src_len && isspace(CUR) && CUR != '\n')
-        l->cur++;
-
-    if (CUR == '\n')
-        BUMP_NEWLINE;
+    while (l->cur < l->src_len && isspace(CUR)) {
+        if (CUR == '\n') {
+            BUMP_NEWLINE;
+        } else
+            l->cur++;
+    }
 
     lx_trim_comment(l);
     return;
@@ -316,7 +317,7 @@ static void lx_trim_comment(Lexer* l) {
     if (!strncmp(&CUR, "/*", 2)) {
         l->cur += 2; // skip past
 
-        while (IN_BOUNDS && !strncmp(&CUR, "*/", 2)) {
+        while (IN_BOUNDS && strncmp(&CUR, "*/", 2)) {
             if (CUR == '\n') {
                 BUMP_NEWLINE;
             } else {
@@ -371,7 +372,7 @@ static bool lx_next_double_symbol(Lexer* l) {
 }
 
 static bool lx_next_single_symbol(Lexer* l) {
-    if (!lx_is_separator(CUR))
+    if (!lx_is_separator(CUR) && !lx_is_operator_start(CUR))
         return false;
 
     const TokenKind TABLE[] = {
@@ -384,7 +385,7 @@ static bool lx_next_single_symbol(Lexer* l) {
     };
 
     TokenKind t;
-    if ((t = TABLE[l->cur]) == 0)
+    if ((t = TABLE[(int)CUR]) == 0)
         return false;
 
     l->token = (Token){
