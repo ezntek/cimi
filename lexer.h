@@ -24,6 +24,12 @@ typedef enum {
     TOK_EOF,
     TOK_INVALID, // internal use only!!
 
+    // Literals
+    TOK_LITERAL_STRING,
+    TOK_LITERAL_CHAR,
+    TOK_LITERAL_NUMBER,
+    TOK_LITERAL_BOOLEAN,
+
     // Keywords
     TOK_VAR,
     TOK_CONST,
@@ -48,7 +54,7 @@ typedef enum {
     TOK_BREAK,
     TOK_CONTINUE,
 
-    // TYPES
+    // Types
     TOK_INT,
     TOK_FLOAT,
     TOK_BOOL,
@@ -101,8 +107,9 @@ typedef struct {
     TokenKind kind;
     Pos pos;
     union {
-        a_string string;
-        u8 null;
+        a_string string; // idents, other literals
+        bool boolean;    // bool literals
+        u8 null;         // dummy field
     } data;
 } Token;
 

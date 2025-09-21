@@ -26,22 +26,22 @@
 #define IN_BOUNDS (l->cur < l->src_len)
 #define POS(sp)                                                                \
     (Pos) {                                                                    \
-        .row = l->row, .col = l->cur - l->bol + 1, .span = sp                  \
+        .row = l->row, .col = l->cur - l->bol + 1 - (sp), .span = (sp)         \
     }
 
-#define POS_FROM(sv, sp)                                                       \
+#define POS_HERE(sp)                                                           \
     (Pos) {                                                                    \
-        .row = l->row, .col = sv - l->bol + 1, .span = sp                      \
+        .row = l->row, .col = l->cur - l->bol + 1, .span = (sp)                \
+    }
+
+#define TOKEN_FULL(kfull, sp)                                                  \
+    (Token) {                                                                  \
+        .kind = (kfull), .data = {{NULL}}, .pos = (POS(sp))                    \
     }
 
 #define TOKEN(k, sp)                                                           \
     (Token) {                                                                  \
         .kind = TOK_##k, .data = {{NULL}}, .pos = (POS(sp))                    \
-    }
-
-#define TOKEN_FROM(kfull, sv, sp)                                              \
-    (Token) {                                                                  \
-        .kind = kfull, .data = {{NULL}}, .pos = (POS_FROM(sv, sp))             \
     }
 
 #define ERROR_BUFSZ 128
@@ -72,7 +72,19 @@ a_string token_kind_to_string(TokenKind k) {
             s = "eof";
         } break;
         case TOK_INVALID: {
-            s = "!!! BOGUS AMOGUS INVALID TOKEN !!!";
+            s = "!!! BOGUS AMOGUS TOKEN !!!";
+        } break;
+        case TOK_LITERAL_STRING: {
+            s = "literal_string";
+        } break;
+        case TOK_LITERAL_CHAR: {
+            s = "literal_char";
+        } break;
+        case TOK_LITERAL_NUMBER: {
+            s = "literal_number";
+        } break;
+        case TOK_LITERAL_BOOLEAN: {
+            s = "literal_boolean";
         } break;
         case TOK_VAR: {
             s = "var";
@@ -252,11 +264,30 @@ a_string token_kind_to_string(TokenKind k) {
 
 void token_print_long(Token* t) {
     printf("token[%d, %d, %d]: ", t->pos.row, t->pos.col, t->pos.span);
-    if (t->kind == TOK_IDENT) {
-        printf("\"%.*s\"", (int)t->data.string.len, t->data.string.data);
-    } else {
-        token_print(t);
+
+    const a_string* s = &t->data.string;
+    switch (t->kind) {
+        case TOK_IDENT: {
+            printf("(%.*s)", (int)s->len, s->data);
+        } break;
+        case TOK_LITERAL_STRING: {
+            printf("\"%.*s\"", (int)s->len, s->data);
+        } break;
+        case TOK_LITERAL_CHAR: {
+            printf("'%.*s'", (int)s->len, s->data);
+        } break;
+        case TOK_LITERAL_NUMBER: {
+            printf("%.*s", (int)s->len, s->data);
+        } break;
+        case TOK_LITERAL_BOOLEAN: {
+            if (t->data.boolean)
+                printf("<true>");
+            else
+                printf("<false>");
+        } break;
+        default: token_print(t);
     }
+
     putchar('\n');
 }
 
@@ -349,7 +380,7 @@ static bool lx_is_operator_start(char ch);
 static bool lx_next_double_symbol(Lexer* l); // true if found
 static bool lx_next_single_symbol(Lexer* l); // true if found
 static bool lx_next_word(Lexer* l, a_string* res);
-static bool lx_next_keyword(Lexer* l, u32 saved_point, const a_string* word);
+static bool lx_next_keyword(Lexer* l, const a_string* word);
 
 static bool lx_is_separator(char ch) {
     return strchr("{}[]();:,", ch);
@@ -449,7 +480,7 @@ static bool lx_next_double_symbol(Lexer* l) {
         return false;
     }
 
-    l->token.pos = POS(2);
+    l->token.pos = POS_HERE(2);
     l->cur += 2;
 
     return true;
@@ -475,7 +506,7 @@ static bool lx_next_single_symbol(Lexer* l) {
     l->token = (Token){
         .kind = t,
         .data.null = 0,
-        .pos = POS(1),
+        .pos = POS_HERE(1),
     };
 
     l->cur++;
@@ -528,14 +559,14 @@ static bool lx_next_word(Lexer* l, a_string* res) {
     return true;
 }
 
-static bool lx_next_keyword(Lexer* l, u32 saved_point, const a_string* word) {
+static bool lx_next_keyword(Lexer* l, const a_string* word) {
     if (word->len >= LX_KWT_STRSZ)
         return false;
 
     TokenKind kw;
     a_string word_lower = as_tolower(word);
     if ((kw = lx_kwt_get(word_lower.data)) != TOK_INVALID) {
-        l->token = TOKEN_FROM(kw, saved_point, word_lower.len);
+        l->token = TOKEN_FULL(kw, word_lower.len);
         as_free(&word_lower);
         return true;
     } else {
@@ -554,8 +585,9 @@ Token* lx_next_token(Lexer* l) {
         goto success;
     }
 
-    if (CUR == '\n')
+    if (CUR == '\n') {
         BUMP_NEWLINE;
+    }
 
     if (lx_next_double_symbol(l))
         goto success;
@@ -563,12 +595,11 @@ Token* lx_next_token(Lexer* l) {
     if (lx_next_single_symbol(l))
         goto success;
 
-    u32 saved_point = l->cur;
     a_string word = {0};
     if (!lx_next_word(l, &word)) // error
         return NULL;
 
-    if (lx_next_keyword(l, saved_point, &word)) {
+    if (lx_next_keyword(l, &word)) {
         as_free(&word);
         goto success;
     }
@@ -576,7 +607,7 @@ Token* lx_next_token(Lexer* l) {
     l->token = (Token){
         .kind = TOK_IDENT,
         .data.string = word,
-        .pos = POS_FROM(saved_point, word.len),
+        .pos = POS(word.len),
     };
 
 success:
