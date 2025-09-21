@@ -22,7 +22,7 @@
     do {                                                                       \
         l->row++;                                                              \
         l->bol = ++l->cur;                                                     \
-    } while (0);
+    } while (0)
 #define IN_BOUNDS (l->cur < l->src_len)
 #define POS(sp)                                                                \
     (Pos) {                                                                    \
@@ -34,12 +34,12 @@
         .row = l->row, .col = l->cur - l->bol + 1, .span = (sp)                \
     }
 
-#define TOKEN_FULL(kfull, sp)                                                  \
+#define TOKEN(kfull, sp)                                                       \
     (Token) {                                                                  \
         .kind = (kfull), .data = {{NULL}}, .pos = (POS(sp))                    \
     }
 
-#define TOKEN(k, sp)                                                           \
+#define TOK(k, sp)                                                             \
     (Token) {                                                                  \
         .kind = TOK_##k, .data = {{NULL}}, .pos = (POS(sp))                    \
     }
@@ -57,7 +57,8 @@ Token token_new_ident(const char* str) {
 }
 
 void token_free(Token* t) {
-    if (t->kind == TOK_IDENT) {
+    if (t->kind == TOK_IDENT || t->kind == TOK_LITERAL_STRING ||
+        t->kind == TOK_LITERAL_CHAR || t->kind == TOK_LITERAL_NUMBER) {
         as_free(&t->data.string);
     }
 }
@@ -73,6 +74,9 @@ a_string token_kind_to_string(TokenKind k) {
         } break;
         case TOK_INVALID: {
             s = "!!! BOGUS AMOGUS TOKEN !!!";
+        } break;
+        case TOK_NEWLINE: {
+            s = "newline";
         } break;
         case TOK_LITERAL_STRING: {
             s = "literal_string";
@@ -381,6 +385,7 @@ static bool lx_next_double_symbol(Lexer* l); // true if found
 static bool lx_next_single_symbol(Lexer* l); // true if found
 static bool lx_next_word(Lexer* l, a_string* res);
 static bool lx_next_keyword(Lexer* l, const a_string* word);
+static bool lx_next_literal(Lexer* l, const a_string* word);
 
 static bool lx_is_separator(char ch) {
     return strchr("{}[]();:,", ch);
@@ -401,12 +406,8 @@ static void lx_trim_spaces(Lexer* l) {
         return;
     }
 
-    while (l->cur < l->src_len && isspace(CUR)) {
-        if (CUR == '\n') {
-            BUMP_NEWLINE;
-        } else
-            l->cur++;
-    }
+    while (l->cur < l->src_len && isspace(CUR) && CUR != '\n')
+        l->cur++;
 
     lx_trim_comment(l);
     return;
@@ -423,8 +424,6 @@ static void lx_trim_comment(Lexer* l) {
         while (IN_BOUNDS && CUR != '\n')
             l->cur++;
 
-        BUMP_NEWLINE;
-
         lx_trim_spaces(l);
         return;
     }
@@ -433,11 +432,10 @@ static void lx_trim_comment(Lexer* l) {
         l->cur += 2; // skip past
 
         while (IN_BOUNDS && strncmp(&CUR, "*/", 2)) {
-            if (CUR == '\n') {
+            if (CUR == '\n')
                 BUMP_NEWLINE;
-            } else {
+            else
                 l->cur++;
-            }
         }
 
         // we found */
@@ -457,25 +455,25 @@ static bool lx_next_double_symbol(Lexer* l) {
     }
 
     if (!strncmp(&CUR, "==", 2)) {
-        l->token = TOKEN(EQ, 2);
+        l->token = TOK(EQ, 2);
     } else if (!strncmp(&CUR, ">=", 2)) {
-        l->token = TOKEN(GEQ, 2);
+        l->token = TOK(GEQ, 2);
     } else if (!strncmp(&CUR, "<=", 2)) {
-        l->token = TOKEN(LEQ, 2);
+        l->token = TOK(LEQ, 2);
     } else if (!strncmp(&CUR, "!=", 2)) {
-        l->token = TOKEN(NEQ, 2);
+        l->token = TOK(NEQ, 2);
     } else if (!strncmp(&CUR, ">>", 2)) {
-        l->token = TOKEN(SHR, 2);
+        l->token = TOK(SHR, 2);
     } else if (!strncmp(&CUR, "<<", 2)) {
-        l->token = TOKEN(SHL, 2);
+        l->token = TOK(SHL, 2);
     } else if (!strncmp(&CUR, "+=", 2)) {
-        l->token = TOKEN(ADD_ASSIGN, 2);
+        l->token = TOK(ADD_ASSIGN, 2);
     } else if (!strncmp(&CUR, "-=", 2)) {
-        l->token = TOKEN(SUB_ASSIGN, 2);
+        l->token = TOK(SUB_ASSIGN, 2);
     } else if (!strncmp(&CUR, "*=", 2)) {
-        l->token = TOKEN(MUL_ASSIGN, 2);
+        l->token = TOK(MUL_ASSIGN, 2);
     } else if (!strncmp(&CUR, "/=", 2)) {
-        l->token = TOKEN(DIV_ASSIGN, 2);
+        l->token = TOK(DIV_ASSIGN, 2);
     } else {
         return false;
     }
@@ -566,7 +564,7 @@ static bool lx_next_keyword(Lexer* l, const a_string* word) {
     TokenKind kw;
     a_string word_lower = as_tolower(word);
     if ((kw = lx_kwt_get(word_lower.data)) != TOK_INVALID) {
-        l->token = TOKEN_FULL(kw, word_lower.len);
+        l->token = TOKEN(kw, word_lower.len);
         as_free(&word_lower);
         return true;
     } else {
@@ -575,25 +573,44 @@ static bool lx_next_keyword(Lexer* l, const a_string* word) {
     }
 }
 
+static bool lx_next_literal(Lexer* l, const a_string* word) {
+    if (as_first(word) == '"') {
+        if (word->len == 1)
+            unreachable;
+
+        // TODO: escape sequences
+        a_string contents = as_slice(word, 1, word->len - 1);
+        l->token = (Token){
+            .kind = TOK_LITERAL_STRING,
+            .pos = POS(word->len),
+            .data.string = contents,
+        };
+        return true;
+    }
+    return false;
+}
+
 Token* lx_next_token(Lexer* l) {
     token_free(&l->token);
     l->token = (Token){0};
 
     lx_trim_spaces(l);
     if (l->cur >= l->src_len) {
-        l->token = TOKEN(EOF, 1);
-        goto success;
+        l->token = TOK(EOF, 1);
+        goto done;
     }
 
     if (CUR == '\n') {
+        l->token = TOK(NEWLINE, 1);
         BUMP_NEWLINE;
+        goto done;
     }
 
     if (lx_next_double_symbol(l))
-        goto success;
+        goto done;
 
     if (lx_next_single_symbol(l))
-        goto success;
+        goto done;
 
     a_string word = {0};
     if (!lx_next_word(l, &word)) // error
@@ -601,7 +618,12 @@ Token* lx_next_token(Lexer* l) {
 
     if (lx_next_keyword(l, &word)) {
         as_free(&word);
-        goto success;
+        goto done;
+    }
+
+    if (lx_next_literal(l, &word)) {
+        as_free(&word);
+        goto done;
     }
 
     l->token = (Token){
@@ -610,7 +632,7 @@ Token* lx_next_token(Lexer* l) {
         .pos = POS(word.len),
     };
 
-success:
+done:
     return &l->token;
 }
 

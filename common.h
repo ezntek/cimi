@@ -68,7 +68,7 @@ typedef double f64;
             perror("perror");                                                  \
             exit(1);                                                           \
         }                                                                      \
-    } while (0);
+    } while (0)
 
 #define eprintf(...) fprintf(stderr, __VA_ARGS__);
 
@@ -80,7 +80,9 @@ typedef double f64;
         eprintf(__VA_ARGS__);                                                  \
         eprintf("\n");                                                         \
         exit(1);                                                               \
-    } while (0);
+    } while (0)
+
+#define unreachable panic("reached unreachable code")
 
 #define fatal_noexit(...)                                                      \
     do {                                                                       \
@@ -88,7 +90,7 @@ typedef double f64;
         eprintf(S_DIM);                                                        \
         eprintf(__VA_ARGS__);                                                  \
         eprintf(S_END "\n");                                                   \
-    } while (0);
+    } while (0)
 
 #define fatal(...)                                                             \
     do {                                                                       \
@@ -102,7 +104,7 @@ typedef double f64;
         eprintf(S_DIM);                                                        \
         eprintf(__VA_ARGS__);                                                  \
         eprintf(S_END "\n");                                                   \
-    } while (0);
+    } while (0)
 
 #define info(...)                                                              \
     do {                                                                       \
@@ -110,7 +112,7 @@ typedef double f64;
         eprintf(S_DIM);                                                        \
         eprintf(__VA_ARGS__);                                                  \
         eprintf(S_END "\n");                                                   \
-    } while (0);
+    } while (0)
 
 #define VERSION "0.1.0"
 

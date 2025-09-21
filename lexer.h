@@ -23,6 +23,7 @@ typedef enum {
     TOK_IDENT = 0,
     TOK_EOF,
     TOK_INVALID, // internal use only!!
+    TOK_NEWLINE,
 
     // Literals
     TOK_LITERAL_STRING,

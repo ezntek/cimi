@@ -291,12 +291,28 @@ void as_append(a_string* s, const char* new);
 char as_pop(a_string* s);
 
 /**
+ * gets the nth character from an a_string.
+ *
+ * @param s the target string
+ * @return the last character
+ */
+char as_at(const a_string* s, size_t idx);
+
+/**
+ * gets the first character from an a_string.
+ *
+ * @param s the target string
+ * @return the last character
+ */
+char as_first(const a_string* s);
+
+/**
  * gets the last character from an a_string.
  *
  * @param s the target string
  * @return the last character
  */
-char as_get_last(const a_string* s);
+char as_last(const a_string* s);
 
 /**
  * removes all whitespace characters from the left side of an a_string.
@@ -392,7 +408,26 @@ bool as_equal(const a_string* lhs, const a_string* rhs);
  * @param lhs the first string
  * @param rhs the other string
  */
-
 bool as_equal_case_insensitive(const a_string* lhs, const a_string* rhs);
+
+/**
+ * slices an a_string from begin to end, from a C string, discluding end.
+ *
+ * @param src the source string
+ * @param begin the beginning
+ * @param end the end
+ * @return the new string
+ */
+a_string as_slice_cstr(const char* src, size_t begin, size_t end);
+
+/**
+ * slices an a_string from begin to end, discluding end.
+ *
+ * @param src the source string
+ * @param begin the beginning
+ * @param end the end
+ * @return the new string
+ */
+a_string as_slice(const a_string* src, size_t begin, size_t end);
 
 #endif // _A_STRING_H

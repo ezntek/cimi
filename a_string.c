@@ -235,7 +235,7 @@ bool as_read_line(a_string* buf, FILE* restrict stream) {
         return false;
 
     // trim newline off
-    if (as_get_last(buf) == '\n')
+    if (as_last(buf) == '\n')
         as_pop(buf);
 
     // resize buf to appropriate size.
@@ -341,9 +341,35 @@ char as_pop(a_string* s) {
     return last;
 }
 
-char as_get_last(const a_string* s) {
+char as_at(const a_string* s, size_t idx) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
+
+    if (!(0 < idx && idx < s->len))
+        panic("a_string index `%zu` out of range (length: `%zu`)!", idx,
+              s->len);
+
+    char last = s->data[0];
+    return last;
+}
+
+char as_first(const a_string* s) {
+    if (!as_valid(s))
+        panic("cannot operate on an invalid a_string!");
+
+    if (s->len == 0)
+        panic("cannot get the first character of an empty a_string!");
+
+    char last = s->data[0];
+    return last;
+}
+
+char as_last(const a_string* s) {
+    if (!as_valid(s))
+        panic("cannot operate on an invalid a_string!");
+
+    if (s->len == 0)
+        panic("cannot get the last character of an empty a_string!");
 
     char last = s->data[s->len - 1];
     return last;
@@ -578,4 +604,23 @@ bool as_equal_case_insensitive_cstr(const a_string* lhs, const char* rhs) {
         .len = strlen(rhs),
     }; // very sketchy, i know
     return as_equal_case_insensitive(lhs, &arhs);
+}
+
+a_string as_slice_cstr(const char* src, size_t begin, size_t end) {
+    if (src == NULL)
+        panic("source C string for slice operation is NULL!");
+
+    if (begin > end)
+        panic("begin cannot be greater than end in slice operation!");
+
+    a_string res = as_new();
+    as_ncopy_cstr(&res, &src[begin], end - begin);
+    return res;
+}
+
+a_string as_slice(const a_string* src, size_t begin, size_t end) {
+    if (!as_valid(src))
+        panic("cannot slice an invalid a_string!");
+
+    return as_slice_cstr(src->data, begin, end);
 }
