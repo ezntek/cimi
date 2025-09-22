@@ -17,7 +17,8 @@
 #include "common.h"
 #include "lexer.h"
 
-#define CUR (l->src[l->cur])
+#define CUR  (l->src[l->cur])
+#define PEEK (l->src[l->cur + 1])
 #define BUMP_NEWLINE                                                           \
     do {                                                                       \
         l->row++;                                                              \
@@ -515,7 +516,8 @@ static bool lx_next_single_symbol(Lexer* l) {
 static bool lx_next_word(Lexer* l, a_string* res) {
     const char* begin = &CUR;
     u32 len = 0;
-    bool delimited_literal = (CUR == '"' || CUR == '\'');
+    const char DELIMS[] = "\"'";
+    bool delimited_literal = strchr(DELIMS, *begin);
     char delim = 0;
     if (delimited_literal) {
         delim = CUR;
@@ -526,7 +528,7 @@ static bool lx_next_word(Lexer* l, a_string* res) {
     do {
         bool stop;
         if (delimited_literal)
-            stop = strchr("\n\r", CUR) || CUR == delim;
+            stop = strchr("\n\r", CUR) || strchr(DELIMS, CUR);
         else
             stop = lx_is_operator_start(CUR) || lx_is_separator(CUR) ||
                    isspace(CUR);
@@ -546,7 +548,10 @@ static bool lx_next_word(Lexer* l, a_string* res) {
     if (delimited_literal) {
         len++;
         if (CUR != delim) {
-            l->error = LX_ERROR_UNTERMINATED_LITERAL;
+            if (strchr(DELIMS, CUR) != NULL)
+                l->error = LX_ERROR_MISMATCHED_DELIMITER;
+            else
+                l->error = LX_ERROR_UNTERMINATED_LITERAL;
             return false;
         } else {
             l->cur++;
@@ -624,7 +629,7 @@ static bool lx_next_literal(Lexer* l, const a_string* word) {
             if (ch == '\\') {
                 // last character is an escape
                 if (i + 1 == word->len - 1) {
-                    l->error = LX_BAD_ESCAPE;
+                    l->error = LX_ERROR_BAD_ESCAPE;
                     return false;
                 }
                 ch = lx__resolve_escape(as_at(word, ++i));
@@ -706,8 +711,11 @@ char* lx_strerror(LexerError e) {
         case LX_ERROR_EOF: {
             s = "unexpected end of file";
         } break;
-        case LX_BAD_ESCAPE: {
+        case LX_ERROR_BAD_ESCAPE: {
             s = "bad escape sequence";
+        } break;
+        case LX_ERROR_MISMATCHED_DELIMITER: {
+            s = "mismatched delimiter in delimited literal";
         } break;
     }
 

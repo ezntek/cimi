@@ -359,8 +359,7 @@ char as_first(const a_string* s) {
     if (s->len == 0)
         panic("cannot get the first character of an empty a_string!");
 
-    char last = s->data[0];
-    return last;
+    return s->data[0];
 }
 
 char as_last(const a_string* s) {
@@ -370,8 +369,7 @@ char as_last(const a_string* s) {
     if (s->len == 0)
         panic("cannot get the last character of an empty a_string!");
 
-    char last = s->data[s->len - 1];
-    return last;
+    return s->data[s->len - 1];
 }
 
 a_string as_trim_left(const a_string* s) {

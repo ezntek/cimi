@@ -17,7 +17,8 @@ typedef enum {
     LX_ERROR_NULL = 0,
     LX_ERROR_UNTERMINATED_LITERAL,
     LX_ERROR_EOF,
-    LX_BAD_ESCAPE,
+    LX_ERROR_BAD_ESCAPE,
+    LX_ERROR_MISMATCHED_DELIMITER,
 } LexerError;
 
 typedef enum {
