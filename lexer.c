@@ -531,6 +531,11 @@ static bool lx_next_word(Lexer* l, a_string* res) {
             stop = lx_is_operator_start(CUR) || lx_is_separator(CUR) ||
                    isspace(CUR);
 
+        if (CUR == '\\') {
+            len += 2;
+            l->cur += 2;
+        }
+
         if (stop || !IN_BOUNDS)
             break;
 
@@ -573,17 +578,65 @@ static bool lx_next_keyword(Lexer* l, const a_string* word) {
     }
 }
 
+static char lx__resolve_escape(char ch) {
+    switch (ch) {
+        case 'a': {
+            return '\a';
+        } break;
+        case 'b': {
+            return '\b';
+        } break;
+        case 'e': {
+            return '\033';
+        } break;
+        case 'n': {
+            return '\n';
+        } break;
+        case 'r': {
+            return '\r';
+        } break;
+        case 't': {
+            return '\t';
+        } break;
+        case '\\': {
+            return '\\';
+        } break;
+        case '\'': {
+            return '\'';
+        } break;
+        case '"': {
+            return '\"';
+        } break;
+        default: return ch;
+    }
+}
+
 static bool lx_next_literal(Lexer* l, const a_string* word) {
-    if (as_first(word) == '"') {
+    char* p;
+    if ((p = strchr("\"'", as_first(word)))) {
         if (word->len == 1)
             unreachable;
 
-        // TODO: escape sequences
-        a_string contents = as_slice(word, 1, word->len - 1);
+        a_string res = as_new();
+        char ch;
+        for (usize i = 1; i < word->len - 1; ++i) {
+            ch = as_at(word, i);
+            if (ch == '\\') {
+                // last character is an escape
+                if (i + 1 == word->len - 1) {
+                    l->error = LX_BAD_ESCAPE;
+                    return false;
+                }
+                ch = lx__resolve_escape(as_at(word, ++i));
+            }
+
+            as_append_char(&res, ch);
+        }
+
         l->token = (Token){
             .kind = TOK_LITERAL_STRING,
             .pos = POS(word->len),
-            .data.string = contents,
+            .data.string = res,
         };
         return true;
     }
@@ -652,6 +705,9 @@ char* lx_strerror(LexerError e) {
         } break;
         case LX_ERROR_EOF: {
             s = "unexpected end of file";
+        } break;
+        case LX_BAD_ESCAPE: {
+            s = "bad escape sequence";
         } break;
     }
 

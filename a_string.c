@@ -349,8 +349,7 @@ char as_at(const a_string* s, size_t idx) {
         panic("a_string index `%zu` out of range (length: `%zu`)!", idx,
               s->len);
 
-    char last = s->data[0];
-    return last;
+    return s->data[idx];
 }
 
 char as_first(const a_string* s) {
