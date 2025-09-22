@@ -621,3 +621,19 @@ a_string as_slice(const a_string* src, size_t begin, size_t end) {
 
     return as_slice_cstr(src->data, begin, end);
 }
+
+bool as_in(const a_string* needle, const a_string** haystack, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+        if (as_equal(needle, haystack[i]))
+            return true;
+    }
+    return false;
+}
+
+bool as_in_cstr(const a_string* needle, const char** haystack, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+        if (as_equal_cstr(needle, haystack[i]))
+            return true;
+    }
+    return false;
+}

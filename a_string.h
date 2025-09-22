@@ -403,6 +403,14 @@ void as_inplace_tolower(a_string* s);
 bool as_equal(const a_string* lhs, const a_string* rhs);
 
 /**
+ * checks if 2 a_strings are the same.
+ *
+ * @param lhs the first string
+ * @param rhs the other string
+ */
+bool as_equal_cstr(const a_string* lhs, const char* rhs);
+
+/**
  * checks if 2 a_strings are the same, case insensitive.
  *
  * @param lhs the first string
@@ -429,5 +437,23 @@ a_string as_slice_cstr(const char* src, size_t begin, size_t end);
  * @return the new string
  */
 a_string as_slice(const a_string* src, size_t begin, size_t end);
+
+/**
+ * checks if a target string is contained within a list of a_strings.
+ *
+ * @param needle the string to find
+ * @param haystacks the strings that the string might be
+ * @param len the number of strings in the haystack
+ */
+bool as_in(const a_string* needle, const a_string** haystack, size_t len);
+
+/**
+ * checks if a target string is contained within a list of C strings.
+ *
+ * @param needle the string to find
+ * @param haystacks the strings that the string might be
+ * @param len the number of strings in the haystack
+ */
+bool as_in_cstr(const a_string* needle, const char** haystack, size_t len);
 
 #endif // _A_STRING_H

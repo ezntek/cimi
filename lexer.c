@@ -9,6 +9,7 @@
  */
 
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -45,6 +46,29 @@
         .kind = TOK_##k, .data = {{NULL}}, .pos = (POS(sp))                    \
     }
 
+#define ERROR(k, sp)                                                           \
+    (LexerError) {                                                             \
+        .kind = LX_ERROR_##k, .pos = (POS(sp))                                 \
+    }
+
+#define TRY(expr)                                                              \
+    do {                                                                       \
+        if ((expr)) {                                                          \
+            goto done;                                                         \
+        } else if (l->error.kind != LX_ERROR_NULL) {                           \
+            return NULL;                                                       \
+        }                                                                      \
+    } while (0)
+
+#define TRY_AND_FREE(expr)                                                     \
+    do {                                                                       \
+        if ((expr)) {                                                          \
+            goto free_and_done;                                                \
+        } else if (l->error.kind != LX_ERROR_NULL) {                           \
+            return NULL;                                                       \
+        }                                                                      \
+    } while (0)
+
 #define ERROR_BUFSZ 128
 
 static char ERROR_BUF[ERROR_BUFSZ] = {0};
@@ -74,7 +98,7 @@ a_string token_kind_to_string(TokenKind k) {
             s = "eof";
         } break;
         case TOK_INVALID: {
-            s = "!!! BOGUS AMOGUS TOKEN !!!";
+            s = "!!! BOGUS AMOGUS TOKEN !!";
         } break;
         case TOK_NEWLINE: {
             s = "newline";
@@ -248,6 +272,7 @@ a_string token_kind_to_string(TokenKind k) {
             s = "shr";
         } break;
         case TOK_SHL: {
+
             s = "shl";
         } break;
         case TOK_ADD_ASSIGN: {
@@ -534,8 +559,8 @@ static bool lx_next_word(Lexer* l, a_string* res) {
                    isspace(CUR);
 
         if (CUR == '\\') {
-            len += 2;
-            l->cur += 2;
+            len++;
+            l->cur++;
         }
 
         if (stop || !IN_BOUNDS)
@@ -549,15 +574,15 @@ static bool lx_next_word(Lexer* l, a_string* res) {
         len++;
         if (CUR != delim) {
             if (strchr(DELIMS, CUR) != NULL)
-                l->error = LX_ERROR_MISMATCHED_DELIMITER;
+                l->error = ERROR(MISMATCHED_DELIMITER, len);
             else
-                l->error = LX_ERROR_UNTERMINATED_LITERAL;
+                l->error = ERROR(UNTERMINATED_LITERAL, len);
             return false;
         } else {
             l->cur++;
         }
     } else if (!IN_BOUNDS) {
-        l->error = LX_ERROR_EOF;
+        l->error = ERROR(EOF, 1);
         return false;
     }
 
@@ -581,6 +606,34 @@ static bool lx_next_keyword(Lexer* l, const a_string* word) {
         as_free(&word_lower);
         return false;
     }
+}
+
+static bool lx__is_number(const a_string* word) {
+    bool found_decimal = false;
+    for (usize i = 0; i < word->len; i++) {
+        char cur = as_at(word, i);
+
+        if (isdigit(cur))
+            continue;
+
+        if (cur == '_') {
+            if (i == 0)
+                return false;
+            else
+                continue;
+        }
+
+        if (cur == '.') {
+            if (found_decimal)
+                return false;
+            else
+                found_decimal = true;
+        }
+
+        return false;
+    }
+
+    return true;
 }
 
 static char lx__resolve_escape(char ch) {
@@ -629,7 +682,7 @@ static bool lx_next_literal(Lexer* l, const a_string* word) {
             if (ch == '\\') {
                 // last character is an escape
                 if (i + 1 == word->len - 1) {
-                    l->error = LX_ERROR_BAD_ESCAPE;
+                    l->error = ERROR(BAD_ESCAPE, word->len);
                     return false;
                 }
                 ch = lx__resolve_escape(as_at(word, ++i));
@@ -638,19 +691,90 @@ static bool lx_next_literal(Lexer* l, const a_string* word) {
             as_append_char(&res, ch);
         }
 
+        TokenKind k = (*p == '\'') ? TOK_LITERAL_CHAR : TOK_LITERAL_STRING;
+
+        if (k == TOK_LITERAL_CHAR && res.len > 1) {
+            l->error = ERROR(CHAR_LITERAL_TOO_LONG, word->len);
+            return false;
+        }
+
         l->token = (Token){
-            .kind = TOK_LITERAL_STRING,
+            .kind = k,
             .pos = POS(word->len),
             .data.string = res,
         };
         return true;
     }
+
+    if (lx__is_number(word)) {
+        a_string new = as_dupe(word);
+        if (!as_valid(&new))
+            panic("failed to dupe a_string for number");
+
+        l->token = (Token){
+            .kind = TOK_LITERAL_NUMBER,
+            .pos = POS(word->len),
+            .data.string = new,
+        };
+        return true;
+    }
+
+    if (as_equal_cstr(word, "true")) {
+        l->token = (Token){
+            .kind = TOK_LITERAL_BOOLEAN,
+            .pos = POS(word->len),
+            .data.boolean = true,
+        };
+        return true;
+    }
+
+    if (as_equal_cstr(word, "false")) {
+        l->token = (Token){
+            .kind = TOK_LITERAL_BOOLEAN,
+            .pos = POS(word->len),
+            .data.boolean = false,
+        };
+        return true;
+    }
+
     return false;
+}
+
+static bool lx__is_ident(const a_string* s) {
+    if (!isalpha(as_first(s)))
+        return false;
+
+    for (size_t i = 0; i < s->len; i++) {
+        char ch = as_at(s, i);
+        if (!isalnum(ch) && !strchr("_.", ch))
+            return false;
+    }
+
+    return true;
+}
+
+static bool lx_next_ident(Lexer* l, const a_string* word) {
+    if (lx__is_ident(word)) {
+        a_string new = as_dupe(word);
+        if (!as_valid(&new))
+            panic("failed to dupe a_string for ident");
+
+        l->token = (Token){
+            .kind = TOK_IDENT,
+            .data.string = new,
+            .pos = POS(new.len),
+        };
+        return true;
+    } else {
+        l->error = ERROR(INVALID_IDENTIFIER, word->len);
+        return false;
+    }
 }
 
 Token* lx_next_token(Lexer* l) {
     token_free(&l->token);
     l->token = (Token){0};
+    l->error = (LexerError){0};
 
     lx_trim_spaces(l);
     if (l->cur >= l->src_len) {
@@ -664,32 +788,20 @@ Token* lx_next_token(Lexer* l) {
         goto done;
     }
 
-    if (lx_next_double_symbol(l))
-        goto done;
-
-    if (lx_next_single_symbol(l))
-        goto done;
+    TRY(lx_next_double_symbol(l));
+    TRY(lx_next_double_symbol(l));
+    TRY(lx_next_single_symbol(l));
 
     a_string word = {0};
     if (!lx_next_word(l, &word)) // error
         return NULL;
 
-    if (lx_next_keyword(l, &word)) {
-        as_free(&word);
-        goto done;
-    }
+    TRY_AND_FREE(lx_next_keyword(l, &word));
+    TRY_AND_FREE(lx_next_literal(l, &word));
+    TRY_AND_FREE(lx_next_ident(l, &word));
 
-    if (lx_next_literal(l, &word)) {
-        as_free(&word);
-        goto done;
-    }
-
-    l->token = (Token){
-        .kind = TOK_IDENT,
-        .data.string = word,
-        .pos = POS(word.len),
-    };
-
+free_and_done:
+    as_free(&word);
 done:
     return &l->token;
 }
@@ -699,9 +811,9 @@ void lx_free(Lexer* l) {
     lx_kwt_free();
 }
 
-char* lx_strerror(LexerError e) {
+char* lx_strerror(LexerErrorKind k) {
     char* s;
-    switch (e) {
+    switch (k) {
         case LX_ERROR_NULL: {
             s = "(no error)";
         } break;
@@ -717,17 +829,23 @@ char* lx_strerror(LexerError e) {
         case LX_ERROR_MISMATCHED_DELIMITER: {
             s = "mismatched delimiter in delimited literal";
         } break;
+        case LX_ERROR_INVALID_IDENTIFIER: {
+            s = "invalid identifier";
+        } break;
+        case LX_ERROR_CHAR_LITERAL_TOO_LONG: {
+            s = "character literal is too long";
+        } break;
     }
 
     return strncpy(ERROR_BUF, s, ERROR_BUFSZ);
 }
 
-a_string lx_as_strerror(LexerError e) {
-    return astr(lx_strerror(e));
+a_string lx_as_strerror(LexerErrorKind k) {
+    return astr(lx_strerror(k));
 }
 
-void lx_perror(LexerError e, const char* pre) {
-    char* err = lx_strerror(e);
+void lx_perror(LexerErrorKind k, const char* pre) {
+    char* err = lx_strerror(k);
     printf("%s: %s\n", pre, err);
 }
 

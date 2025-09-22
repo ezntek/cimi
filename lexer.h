@@ -13,12 +13,25 @@
 #include "a_string.h"
 #include "common.h"
 
+typedef struct {
+    u32 row;
+    u16 col;
+    u16 span;
+} Pos;
+
 typedef enum {
     LX_ERROR_NULL = 0,
     LX_ERROR_UNTERMINATED_LITERAL,
     LX_ERROR_EOF,
     LX_ERROR_BAD_ESCAPE,
     LX_ERROR_MISMATCHED_DELIMITER,
+    LX_ERROR_INVALID_IDENTIFIER,
+    LX_ERROR_CHAR_LITERAL_TOO_LONG,
+} LexerErrorKind;
+
+typedef struct {
+    LexerErrorKind kind;
+    Pos pos;
 } LexerError;
 
 typedef enum {
@@ -101,12 +114,6 @@ typedef enum {
 } TokenKind;
 
 typedef struct {
-    u32 row;
-    u16 col;
-    u16 span;
-} Pos;
-
-typedef struct {
     TokenKind kind;
     Pos pos;
     union {
@@ -144,10 +151,9 @@ typedef struct {
 Lexer lx_new(const char* src, usize src_len);
 Token* lx_next_token(Lexer* l);
 void lx_free(Lexer* l);
-
-char* lx_strerror(LexerError e);
-a_string lx_as_strerror(LexerError e);
-void lx_perror(LexerError e, const char* pre);
 void lx_reset(Lexer* l);
+char* lx_strerror(LexerErrorKind e);
+a_string lx_as_strerror(LexerErrorKind e);
+void lx_perror(LexerErrorKind e, const char* pre);
 
 #endif // _LEXER_H

@@ -7,12 +7,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "lexer.h"
 #define _POSIX_C_SOURCE 200809L
 #define _GNU_SOURCE
 
+#include <errno.h>
+
 #include "a_string.h"
 #include "common.h"
+#include "lexer.h"
 
 i32 main(i32 argc, char* argv[argc]) {
     argv++;
@@ -23,6 +25,8 @@ i32 main(i32 argc, char* argv[argc]) {
     }
 
     a_string s = as_read_file(argv[0]);
+    if (errno == ENOENT)
+        panic("file \"%s\" not found", argv[0]);
 
     Lexer l = lx_new(s.data, s.len);
 
@@ -31,7 +35,7 @@ i32 main(i32 argc, char* argv[argc]) {
         tok = lx_next_token(&l);
 
         if (!tok) {
-            lx_perror(l.error, "\033[31;1mlexer error\033[0m");
+            lx_perror(l.error.kind, "\033[31;1mlexer error\033[0m");
             break;
         }
 
