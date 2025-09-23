@@ -345,7 +345,7 @@ char as_at(const a_string* s, size_t idx) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    if (!(0 < idx && idx < s->len))
+    if (idx >= s->len)
         panic("a_string index `%zu` out of range (length: `%zu`)!", idx,
               s->len);
 

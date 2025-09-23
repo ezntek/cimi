@@ -65,6 +65,7 @@
         if ((expr)) {                                                          \
             goto free_and_done;                                                \
         } else if (l->error.kind != LX_ERROR_NULL) {                           \
+            as_free(&word);                                                    \
             return NULL;                                                       \
         }                                                                      \
     } while (0)
@@ -272,7 +273,6 @@ a_string token_kind_to_string(TokenKind k) {
             s = "shr";
         } break;
         case TOK_SHL: {
-
             s = "shl";
         } break;
         case TOK_ADD_ASSIGN: {
@@ -628,6 +628,8 @@ static bool lx__is_number(const a_string* word) {
                 return false;
             else
                 found_decimal = true;
+
+            continue;
         }
 
         return false;
@@ -772,7 +774,10 @@ static bool lx_next_ident(Lexer* l, const a_string* word) {
 }
 
 Token* lx_next_token(Lexer* l) {
-    token_free(&l->token);
+    if (l->error.kind != LX_ERROR_NULL) {
+        token_free(&l->token);
+    }
+
     l->token = (Token){0};
     l->error = (LexerError){0};
 

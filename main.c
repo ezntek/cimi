@@ -36,12 +36,11 @@ i32 main(i32 argc, char* argv[argc]) {
 
         if (!tok) {
             lx_perror(l.error.kind, "\033[31;1mlexer error\033[0m");
-            break;
+        } else {
+            token_print_long(tok);
+            token_free(tok);
         }
-
-        token_print_long(tok);
-        token_free(tok);
-    } while (tok->kind != TOK_EOF);
+    } while (!tok || tok->kind != TOK_EOF);
 
     as_free(&s);
     return 0;
