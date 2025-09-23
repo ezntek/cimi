@@ -47,7 +47,7 @@ typedef enum {
     TOK_LITERAL_BOOLEAN,
 
     // Keywords
-    TOK_VAR,
+    TOK_LET,
     TOK_CONST,
     TOK_ECHO,
     TOK_READ,

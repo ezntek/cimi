@@ -116,8 +116,8 @@ a_string token_kind_to_string(TokenKind k) {
         case TOK_LITERAL_BOOLEAN: {
             s = "literal_boolean";
         } break;
-        case TOK_VAR: {
-            s = "var";
+        case TOK_LET: {
+            s = "let";
         } break;
         case TOK_CONST: {
             s = "const";
@@ -346,7 +346,7 @@ static void lx_kwt_free(void);
 static void lx_kwt_setup(void) {
     kwt = NULL;
 
-    lx_kwt_add("var", TOK_VAR);
+    lx_kwt_add("let", TOK_LET);
     lx_kwt_add("const", TOK_CONST);
     lx_kwt_add("echo", TOK_ECHO);
     lx_kwt_add("read", TOK_READ);
