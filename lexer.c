@@ -7,6 +7,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+#define _POSIX_C_SOURCE 200809L
 
 #include <ctype.h>
 #include <stdbool.h>
@@ -140,9 +141,6 @@ a_string token_kind_to_string(TokenKind k) {
         case TOK_IF: {
             s = "if";
         } break;
-        case TOK_THEN: {
-            s = "then";
-        } break;
         case TOK_ELSE: {
             s = "else";
         } break;
@@ -181,6 +179,9 @@ a_string token_kind_to_string(TokenKind k) {
         } break;
         case TOK_CONTINUE: {
             s = "continue";
+        } break;
+        case TOK_REPEAT: {
+            s = "then";
         } break;
         case TOK_INT: {
             s = "int";
@@ -354,7 +355,6 @@ static void lx_kwt_setup(void) {
     lx_kwt_add("or", TOK_OR);
     lx_kwt_add("not", TOK_NOT);
     lx_kwt_add("if", TOK_IF);
-    lx_kwt_add("then", TOK_THEN);
     lx_kwt_add("else", TOK_ELSE);
     lx_kwt_add("end", TOK_END);
     lx_kwt_add("switch", TOK_SWITCH);
@@ -368,6 +368,7 @@ static void lx_kwt_setup(void) {
     lx_kwt_add("export", TOK_EXPORT);
     lx_kwt_add("break", TOK_BREAK);
     lx_kwt_add("continue", TOK_CONTINUE);
+    lx_kwt_add("repeat", TOK_REPEAT);
     lx_kwt_add("int", TOK_INT);
     lx_kwt_add("float", TOK_FLOAT);
     lx_kwt_add("bool", TOK_BOOL);
@@ -794,7 +795,6 @@ Token* lx_next_token(Lexer* l) {
     }
 
     TRY(lx_next_double_symbol(l));
-    TRY(lx_next_double_symbol(l));
     TRY(lx_next_single_symbol(l));
 
     a_string word = {0};
@@ -842,7 +842,7 @@ char* lx_strerror(LexerErrorKind k) {
         } break;
     }
 
-    return strncpy(ERROR_BUF, s, ERROR_BUFSZ);
+    return strncpy(ERROR_BUF, s, ERROR_BUFSZ - 1);
 }
 
 a_string lx_as_strerror(LexerErrorKind k) {

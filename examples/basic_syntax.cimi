@@ -1,0 +1,77 @@
+// this is a comment
+include "other file"
+
+let num: int
+// other primitive types include:
+// float, string, bool, char
+
+const language_name = "cimi"
+
+print("this", 69, "is quite peak")
+read(var1, var2, var3)
+
+if condition 
+    // code
+end
+
+if condition
+    // code
+else
+    // code
+end
+
+if condition
+    // code
+else if condition
+    // code
+end
+
+condition and condition
+condition or condition
+not condition
+
+switch value
+    case thing
+        // code
+    end
+    case a continue
+    case b
+        // code
+    continue
+    case c
+        // code
+    end
+end
+
+while condition
+    // code
+end
+
+repeat
+    // code
+while condition
+
+// <begin>,<end>,<step>
+for value = 1,2 do
+    // code
+end
+
+// the following:
+//  fn /* code */ end
+//  fn: int /* code */ end
+//  fn(arglist): int /* code */ end
+// are allowed
+const fn_without_params = fn
+    // code
+end
+
+const take_some_params = fn(a: int, b: float, c: bool)
+    // code
+end
+
+// OR
+
+fn no_params
+    return
+end
+
