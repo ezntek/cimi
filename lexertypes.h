@@ -55,6 +55,7 @@ typedef enum {
     TOK_OR,
     TOK_NOT,
     TOK_IF,
+    TOK_THEN,
     TOK_ELSE,
     TOK_END,
     TOK_SWITCH,

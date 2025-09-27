@@ -141,6 +141,9 @@ a_string token_kind_to_string(TokenKind k) {
         case TOK_IF: {
             s = "if";
         } break;
+        case TOK_THEN: {
+            s = "then";
+        } break;
         case TOK_ELSE: {
             s = "else";
         } break;

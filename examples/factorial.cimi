@@ -1,5 +1,5 @@
 const factorial = fn(n: int)
-    if n == 1 
+    if n == 1 then 
         1
     else 
         factorial(n - 1) * n
@@ -15,3 +15,4 @@ while i < max
     echo(i, "! is ", res)
     i += 1
 end
+
