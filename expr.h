@@ -21,10 +21,8 @@ struct C_Block;
 struct C_Identifier;
 struct C_Lvalue;
 
-enum C_PrimitiveType;
 struct C_ArrayType;
 struct C_Type;
-enum C_ExprKind;
 
 struct C_FunctionArgument;
 struct C_ArgumentList;
@@ -36,7 +34,6 @@ struct C_Expr_FnCall;
 
 struct C_Assign;
 
-enum C_If_BranchKind;
 struct C_If_Branch;
 struct C_If;
 
@@ -169,13 +166,13 @@ C_BinaryExpr C_BinaryExpr_new(u32 pos, C_BinaryOp op, struct C_Expr lhs,
                               struct C_Expr rhs);
 
 typedef struct C_ArrayIndex {
-    struct C_Identifier* ident;
+    struct C_Expr* ident;
     struct C_Expr* index;
     u32 pos;
 } C_ArrayIndex;
 AST_DECL_FREE(C_ArrayIndex);
 
-C_ArrayIndex C_ArrayIndex_new(u32 pos, struct C_Identifier ident,
+C_ArrayIndex C_ArrayIndex_new(u32 pos, struct C_Expr ident,
                               struct C_Expr index);
 
 typedef struct C_Expr_FnCall {

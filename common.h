@@ -82,6 +82,9 @@ typedef double f64;
         exit(1);                                                               \
     } while (0)
 
+#ifdef unreachable
+#undef unreachable
+#endif
 #define unreachable panic("reached unreachable code")
 
 #define fatal_noexit(...)                                                      \
@@ -116,7 +119,7 @@ typedef double f64;
 
 #define make(T, ident, val)                                                    \
     do {                                                                       \
-        (ident) = malloc(sizeof(#T));                                          \
+        (ident) = malloc(sizeof(T));                                           \
         check_alloc((ident));                                                  \
         *(ident) = (val);                                                      \
     } while (0)

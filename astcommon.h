@@ -10,7 +10,7 @@
 #ifndef _ASTCOMMON_H
 #define _ASTCOMMON_H
 
-#define AST_DECL_FREE(T)    void T##_free(T*);
+#define AST_DECL_FREE(T)    void T##_free(T*)
 #define AST_IMPL_FREE(T, n) void T##_free(T* n)
 
 #define AST_INIT_NODE(T) T res = {.pos = pos}

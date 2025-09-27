@@ -71,7 +71,7 @@ AST_IMPL_FREE(C_ArrayType, s) {
 }
 
 C_Type C_Type_new_primitive(u32 pos, C_PrimitiveType t) {
-    return (C_Type){.pos = pos, .kind = C_TYPE_PRIMITIVE, .data = t};
+    return (C_Type){.pos = pos, .kind = C_TYPE_PRIMITIVE, .data.primitive = t};
 }
 
 C_Type C_Type_new_array(u32 pos, C_ArrayType t) {
@@ -136,6 +136,7 @@ C_BinaryExpr C_BinaryExpr_new(u32 pos, C_BinaryOp op, struct C_Expr lhs,
                               struct C_Expr rhs) {
     AST_INIT_NODE(C_BinaryExpr);
 
+    res.op = op;
     make(C_Expr, res.lhs, lhs);
     make(C_Expr, res.rhs, rhs);
 
@@ -149,14 +150,22 @@ AST_IMPL_FREE(C_BinaryExpr, e) {
     free(e->rhs);
 }
 
-C_ArrayIndex C_ArrayIndex_new(u32 pos, struct C_Identifier ident,
+C_ArrayIndex C_ArrayIndex_new(u32 pos, struct C_Expr ident,
                               struct C_Expr index) {
     AST_INIT_NODE(C_ArrayIndex);
 
-    make(C_Identifier, res.ident, ident);
+    make(C_Expr, res.ident, ident);
     make(C_Expr, res.index, index);
 
     return res;
+}
+
+AST_IMPL_FREE(C_ArrayIndex, idx) {
+    C_Expr_free(idx->ident);
+    C_Expr_free(idx->index);
+
+    free(idx->index);
+    free(idx->ident);
 }
 
 void C_Expr_FnCall_free(C_Expr_FnCall* c) {
@@ -253,6 +262,13 @@ C_Expr C_Expr_new_assign(C_Assign e) {
 
 C_Expr C_Expr_new_if(C_If e) {
     return (C_Expr){.kind = C_EXPR_IF, .data._if = e};
+}
+
+AST_IMPL_FREE(C_If, s) {
+    for (u32 i = 0; i < s->branches_len; ++i) {
+        C_If_Branch_free(&s->branches[i]);
+    }
+    free(s->branches);
 }
 
 AST_IMPL_FREE(C_Expr, e) {

@@ -51,3 +51,7 @@ AST_IMPL_FREE(C_Block, b) {
     }
     free(b->items);
 }
+
+AST_IMPL_FREE(C_Stmt, stmt) {
+    return;
+}
