@@ -14,16 +14,24 @@
 #include "lexertypes.h"
 
 struct C_Identifier;
+struct C_Lvalue;
+
 enum C_PrimitiveType;
 struct C_ArrayType;
 struct C_Type;
 enum C_ExprKind;
-struct C_Expr_Unary;
-struct C_Expr_Binary;
-struct C_Expr_ArrayIndex;
+
 struct C_FunctionArgument;
 struct C_ArgumentList;
+
+struct C_Expr_Unary;
+struct C_Expr_Binary;
+struct C_ArrayIndex;
 struct C_Expr_FnCall;
+
+struct C_Expr_Assign;
+struct C_Expr_If;
+
 union C_ExprData;
 struct C_Expr;
 
@@ -31,6 +39,19 @@ typedef struct C_Identifier {
     a_string ident;
     u32 pos;
 } C_Identifier;
+
+typedef enum {
+    C_LV_IDENT = 0,
+    C_LV_ARRAY_INDEX,
+} C__LvalueKind;
+
+typedef struct C_Lvalue {
+    C__LvalueKind kind;
+    union {
+        struct C_Identifier* ident;
+        struct C_ArrayIndex* array_index;
+    } data;
+} C_Lvalue;
 
 C_Identifier C_Identifier_new(u32 pos, a_string ident);
 void C_Identifier_free(C_Identifier* id);
@@ -76,10 +97,10 @@ void C_ArrayType_free(C_ArrayType* s);
 typedef enum {
     C_TYPE_PRIMITIVE = 0,
     C_TYPE_ARRAY,
-} C__TypeVariant;
+} C__TypeKind;
 
 typedef struct C_Type {
-    C__TypeVariant kind;
+    C__TypeKind kind;
     u32 pos;
     union {
         enum C_PrimitiveType primitive;
@@ -90,6 +111,27 @@ typedef struct C_Type {
 C_Type C_Type_new_primitive(u32 pos, C_PrimitiveType t);
 C_Type C_Type_new_array(u32, C_ArrayType t);
 void C_Type_free(C_Type* t);
+
+typedef struct C_FunctionArgument {
+    struct C_Identifier* ident;
+    struct C_Type* type;
+    u32 pos;
+} C_FunctionArgument;
+
+C_FunctionArgument C_FunctionArgument_new(u32 pos, C_Identifier ident,
+                                          C_Type type);
+void C_FunctionArgument_free(C_FunctionArgument* a);
+
+typedef struct C_ArgumentList {
+    struct C_FunctionArgument** args;
+    u32 nargs;
+    u32 pos;
+} C_ArgumentList;
+
+// args must be allocated
+C_ArgumentList C_ArgumentList_new(u32 pos, C_FunctionArgument** args,
+                                  u32 nargs);
+void C_ArgumentList_free(C_ArgumentList* args);
 
 typedef enum C_ExprKind {
     C_EXPR_UNARYOP = 0,
@@ -118,36 +160,15 @@ C_Expr_Binary C_Expr_Binary_new(u32 pos, C_BinaryOp op, struct C_Expr lhs,
                                 struct C_Expr rhs);
 void C_Expr_Binary_free(C_Expr_Binary* e);
 
-typedef struct C_Expr_ArrayIndex {
+typedef struct C_ArrayIndex {
     struct C_Identifier* ident;
     struct C_Expr* index;
     u32 pos;
-} C_Expr_ArrayIndex;
+} C_ArrayIndex;
 
-C_Expr_ArrayIndex C_Expr_ArrayIndex_new(u32 pos, struct C_Identifier ident,
-                                        struct C_Expr index);
-void C_Expr_ArrayIndex_free(C_Expr_ArrayIndex* e);
-
-typedef struct C_FunctionArgument {
-    struct C_Identifier* ident;
-    struct C_Type* type;
-    u32 pos;
-} C_FunctionArgument;
-
-C_FunctionArgument C_FunctionArgument_new(u32 pos, C_Identifier ident,
-                                          C_Type type);
-void C_FunctionArgument_free(C_FunctionArgument* a);
-
-typedef struct C_ArgumentList {
-    struct C_FunctionArgument** args;
-    u32 nargs;
-    u32 pos;
-} C_ArgumentList;
-
-// args must be allocated
-C_ArgumentList C_ArgumentList_new(u32 pos, C_FunctionArgument** args,
-                                  u32 nargs);
-void C_ArgumentList_free(C_ArgumentList* args);
+C_ArrayIndex C_ArrayIndex_new(u32 pos, struct C_Identifier ident,
+                              struct C_Expr index);
+void C_ArrayIndex_free(C_ArrayIndex* e);
 
 typedef struct C_Expr_FnCall {
     struct C_Identifier* ident;
@@ -159,10 +180,18 @@ C_Expr_FnCall C_Expr_FnCall_new(u32 pos, C_Identifier ident,
                                 C_ArgumentList args);
 void C_Expr_FnCall_free(C_Expr_FnCall* c);
 
+typedef struct C_Expr_Assign {
+
+} C_Expr_Assign;
+
+typedef struct C_Expr_If {
+
+} C_Expr_If;
+
 typedef union C_ExprData {
     struct C_Expr_Unary unary;
     struct C_Expr_Binary binary;
-    struct C_Expr_ArrayIndex array_index;
+    struct C_ArrayIndex array_index;
     struct C_Expr_FnCall fncall;
 } C_ExprData;
 
@@ -173,7 +202,7 @@ typedef struct C_Expr {
 
 C_Expr C_Expr_new_unary(C_Expr_Unary e);
 C_Expr C_Expr_new_binary(C_Expr_Binary e);
-C_Expr C_Expr_new_array_index(C_Expr_ArrayIndex e);
+C_Expr C_Expr_new_array_index(C_ArrayIndex e);
 C_Expr C_Expr_new_fncall(C_Expr_FnCall e);
 void C_Expr_free(C_Expr* e);
 

@@ -65,6 +65,40 @@ void C_Type_free(C_Type* t) {
     }
 }
 
+C_FunctionArgument C_FunctionArgument_new(u32 pos, C_Identifier ident,
+                                          C_Type type) {
+    C_FunctionArgument res = {.pos = pos};
+
+    res.ident = malloc(sizeof(C_Identifier));
+    check_alloc(res.ident);
+    *res.ident = ident;
+
+    res.type = malloc(sizeof(C_Type));
+    check_alloc(res.type);
+    *res.type = type;
+
+    return res;
+}
+
+void C_FunctionArgument_free(C_FunctionArgument* a) {
+    C_Identifier_free(a->ident);
+    C_Type_free(a->type);
+
+    free(a->ident);
+    free(a->type);
+}
+
+C_ArgumentList C_ArgumentList_new(u32 pos, C_FunctionArgument** args,
+                                  u32 nargs) {
+    return (C_ArgumentList){.pos = pos, .args = args, .nargs = nargs};
+}
+
+void C_ArgumentList_free(C_ArgumentList* args) {
+    for (u32 i = 0; i < args->nargs; ++i) {
+        C_FunctionArgument_free(args->args[i]);
+    }
+}
+
 C_Expr_Unary C_Expr_Unary_new(u32 pos, C_UnaryOp op, struct C_Expr inner) {
     C_Expr_Unary res = {.pos = pos, .op = op};
     res.inner = malloc(sizeof(C_Expr));
@@ -100,9 +134,9 @@ void C_Expr_Binary_free(C_Expr_Binary* e) {
     free(e->rhs);
 }
 
-C_Expr_ArrayIndex C_Expr_ArrayIndex_new(u32 pos, struct C_Identifier ident,
-                                        struct C_Expr index) {
-    C_Expr_ArrayIndex res = {.pos = pos};
+C_ArrayIndex C_ArrayIndex_new(u32 pos, struct C_Identifier ident,
+                              struct C_Expr index) {
+    C_ArrayIndex res = {.pos = pos};
 
     res.ident = malloc(sizeof(C_Identifier));
     check_alloc(res.ident);
@@ -115,46 +149,12 @@ C_Expr_ArrayIndex C_Expr_ArrayIndex_new(u32 pos, struct C_Identifier ident,
     return res;
 }
 
-void C_Expr_ArrayIndex_free(C_Expr_ArrayIndex* e) {
+void C_ArrayIndex_free(C_ArrayIndex* e) {
     C_Identifier_free(e->ident);
     C_Expr_free(e->index);
 
     free(e->ident);
     free(e->index);
-}
-
-C_FunctionArgument C_FunctionArgument_new(u32 pos, C_Identifier ident,
-                                          C_Type type) {
-    C_FunctionArgument res = {.pos = pos};
-
-    res.ident = malloc(sizeof(C_Identifier));
-    check_alloc(res.ident);
-    *res.ident = ident;
-
-    res.type = malloc(sizeof(C_Type));
-    check_alloc(res.type);
-    *res.type = type;
-
-    return res;
-}
-
-void C_FunctionArgument_free(C_FunctionArgument* a) {
-    C_Identifier_free(a->ident);
-    C_Type_free(a->type);
-
-    free(a->ident);
-    free(a->type);
-}
-
-C_ArgumentList C_ArgumentList_new(u32 pos, C_FunctionArgument** args,
-                                  u32 nargs) {
-    return (C_ArgumentList){.pos = pos, .args = args, .nargs = nargs};
-}
-
-void C_ArgumentList_free(C_ArgumentList* args) {
-    for (u32 i = 0; i < args->nargs; ++i) {
-        C_FunctionArgument_free(args->args[i]);
-    }
 }
 
 C_Expr_FnCall C_Expr_FnCall_new(u32 pos, C_Identifier ident,
@@ -187,7 +187,7 @@ C_Expr C_Expr_new_binary(C_Expr_Binary e) {
     return (C_Expr){.kind = C_EXPR_BINOP, .data.binary = e};
 }
 
-C_Expr C_Expr_new_array_index(C_Expr_ArrayIndex e) {
+C_Expr C_Expr_new_array_index(C_ArrayIndex e) {
     return (C_Expr){.kind = C_EXPR_ARRAY_INDEX, .data.array_index = e};
 }
 
@@ -204,7 +204,7 @@ void C_Expr_free(C_Expr* e) {
             C_Expr_Binary_free(&e->data.binary);
         } break;
         case C_EXPR_ARRAY_INDEX: {
-            C_Expr_ArrayIndex_free(&e->data.array_index);
+            C_ArrayIndex_free(&e->data.array_index);
         } break;
         case C_EXPR_FNCALL: {
             C_Expr_FnCall_free(&e->data.fncall);
