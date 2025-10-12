@@ -77,6 +77,7 @@ typedef enum {
     TOK_BOOL,
     TOK_STRING,
     TOK_CHAR,
+    TOK_ANY,
     TOK_NULL,
 
     // Separators

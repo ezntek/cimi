@@ -201,6 +201,9 @@ a_string token_kind_to_string(TokenKind k) {
         case TOK_CHAR: {
             s = "char";
         } break;
+        case TOK_ANY: {
+            s = "any";
+        } break;
         case TOK_NULL: {
             s = "null";
         } break;
@@ -377,6 +380,7 @@ static void lx_kwt_setup(void) {
     lx_kwt_add("bool", TOK_BOOL);
     lx_kwt_add("string", TOK_STRING);
     lx_kwt_add("char", TOK_CHAR);
+    lx_kwt_add("any", TOK_ANY);
     lx_kwt_add("null", TOK_NULL);
 }
 

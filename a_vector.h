@@ -13,66 +13,68 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#define A_VECTOR_DECL(T)                                                       \
+#define A_VECTOR_DECL(T, name)                                                 \
     typedef struct {                                                           \
         T* data;                                                               \
         size_t len;                                                            \
         size_t cap;                                                            \
-    } av_##T;                                                                  \
-    av_##T av_##T##_new(void);                                                 \
-    av_##T av_##T##_with_capacity(size_t cap);                                 \
-    av_##T av_##T##_from_slice(const T* slice, size_t nitems);                 \
-    void av_##T##_free(av_##T* v);                                             \
-    bool av_##T##_valid(av_##T* v);                                            \
-    void av_##T##_reserve(av_##T* v, size_t cap);                              \
-    void av_##T##_append(av_##T* v, T new_elem);                               \
-    void av_##T##_append_vector(av_##T* v, const av_##T* other);               \
-    void av_##T##_append_slice(av_##T* v, const T* ptr, size_t nitems);        \
-    T av_##T##_pop(av_##T* v);                                                 \
-    T av_##T##_pop_at(av_##T* v, size_t pos);
+    } name;                                                                    \
+    name name##_new(void);                                                     \
+    name name##_with_capacity(size_t cap);                                     \
+    name name##_from_slice(const T* slice, size_t nitems);                     \
+    void name##_free(name* v);                                                 \
+    bool name##_valid(name* v);                                                \
+    void name##_reserve(name* v, size_t cap);                                  \
+    void name##_append(name* v, T new_elem);                                   \
+    void name##_append_vector(name* v, const name* other);                     \
+    void name##_append_slice(name* v, const T* ptr, size_t nitems);            \
+    T name##_pop(name* v);                                                     \
+    T name##_pop_at(name* v, size_t pos);
 #define A_VECTOR_GROWTH_FACTOR 3
-#define A_VECTOR_IMPL(T)                                                       \
-    av_##T av_##T##_new(void) { return av_##T##_with_capacity(5); }            \
-    av_##T av_##T##_with_capacity(size_t cap) {                                \
-        av_##T res = {.len = 0, .cap = cap};                                   \
+#define A_VECTOR_IMPL(T, name)                                                 \
+    name name##_new(void) {                                                    \
+        return name##_with_capacity(5);                                        \
+    }                                                                          \
+    name name##_with_capacity(size_t cap) {                                    \
+        name res = {.len = 0, .cap = cap};                                     \
         res.data = calloc(res.cap, sizeof(T));                                 \
         check_alloc(res.data);                                                 \
         return res;                                                            \
     }                                                                          \
-    av_##T av_##T##_from_slice(const T* slice, size_t nitems) {                \
-        av_##T res = av_##T##_with_capacity(nitems);                           \
+    name name##_from_slice(const T* slice, size_t nitems) {                    \
+        name res = name##_with_capacity(nitems);                               \
         memcpy(res.data, slice, nitems * sizeof(T));                           \
         res.len = nitems;                                                      \
         return res;                                                            \
     }                                                                          \
-    void av_##T##_free(av_##T* v) {                                            \
+    void name##_free(name* v) {                                                \
         free(v->data);                                                         \
         v->len = (size_t)-1;                                                   \
         v->cap = (size_t)-1;                                                   \
     }                                                                          \
-    bool av_##T##_valid(av_##T* v) {                                           \
+    bool name##_valid(name* v) {                                               \
         return !(v->len == (size_t)-1 || v->cap == (size_t)-1 ||               \
                  v->data == NULL);                                             \
     }                                                                          \
-    void av_##T##_reserve(av_##T* v, size_t cap) {                             \
-        if (!av_##T##_valid(v)) {                                              \
+    void name##_reserve(name* v, size_t cap) {                                 \
+        if (!name##_valid(v)) {                                                \
             panic("the vector is invalid");                                    \
         }                                                                      \
         v->data = realloc(v->data, sizeof(T) * cap);                           \
         check_alloc(v->data);                                                  \
         v->cap = cap;                                                          \
     }                                                                          \
-    void av_##T##_append(av_##T* v, T new_elem) {                              \
-        if (!av_##T##_valid(v)) {                                              \
+    void name##_append(name* v, T new_elem) {                                  \
+        if (!name##_valid(v)) {                                                \
             panic("the vector is invalid");                                    \
         }                                                                      \
         if (v->len + 1 > v->cap) {                                             \
-            av_##T##_reserve(v, v->cap * A_VECTOR_GROWTH_FACTOR);              \
+            name##_reserve(v, v->cap* A_VECTOR_GROWTH_FACTOR);                 \
         }                                                                      \
         v->data[v->len++] = new_elem;                                          \
     }                                                                          \
-    void av_##T##_append_vector(av_##T* v, const av_##T* other) {              \
-        if (!av_##T##_valid(v)) {                                              \
+    void name##_append_vector(name* v, const name* other) {                    \
+        if (!name##_valid(v)) {                                                \
             panic("the vector is invalid");                                    \
         }                                                                      \
         size_t len = v->len + other->len;                                      \
@@ -80,13 +82,13 @@
             size_t sz = v->cap;                                                \
             while (sz < len)                                                   \
                 sz *= A_VECTOR_GROWTH_FACTOR;                                  \
-            av_##T##_reserve(v, sz);                                           \
+            name##_reserve(v, sz);                                             \
         }                                                                      \
         memcpy(&v->data[v->len], other->data, sizeof(T) * other->len);         \
         v->len += other->len;                                                  \
     }                                                                          \
-    void av_##T##_append_slice(av_##T* v, const T* data, size_t nitems) {      \
-        if (!av_##T##_valid(v)) {                                              \
+    void name##_append_slice(name* v, const T* data, size_t nitems) {          \
+        if (!name##_valid(v)) {                                                \
             panic("the vector is invalid");                                    \
         }                                                                      \
         size_t len = v->len + nitems;                                          \
@@ -94,23 +96,23 @@
             size_t sz = v->cap;                                                \
             while (sz < len)                                                   \
                 sz *= A_VECTOR_GROWTH_FACTOR;                                  \
-            av_##T##_reserve(v, sz);                                           \
+            name##_reserve(v, sz);                                             \
         }                                                                      \
         memcpy(&v->data[v->len], data, sizeof(T) * nitems);                    \
         v->len += nitems;                                                      \
     }                                                                          \
-    T av_##T##_pop(av_##T* v) {                                                \
-        if (!av_##T##_valid(v)) {                                              \
+    T name##_pop(name* v) {                                                    \
+        if (!name##_valid(v)) {                                                \
             panic("the vector is invalid");                                    \
         }                                                                      \
         T res = v->data[--v->len];                                             \
         if (v->len < (size_t)(v->cap / A_VECTOR_GROWTH_FACTOR)) {              \
-            av_##T##_reserve(v, v->cap / A_VECTOR_GROWTH_FACTOR);              \
+            name##_reserve(v, v->cap / A_VECTOR_GROWTH_FACTOR);                \
         }                                                                      \
         return res;                                                            \
     }                                                                          \
-    T av_##T##_pop_at(av_##T* v, size_t pos) {                                 \
-        if (!av_##T##_valid(v)) {                                              \
+    T name##_pop_at(name* v, size_t pos) {                                     \
+        if (!name##_valid(v)) {                                                \
             panic("the vector is invalid");                                    \
         }                                                                      \
         if (pos >= v->len) {                                                   \

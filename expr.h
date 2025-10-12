@@ -30,7 +30,7 @@ struct C_ArgumentList;
 struct C_UnaryExpr;
 struct C_BinaryExpr;
 struct C_ArrayIndex;
-struct C_Expr_FnCall;
+struct C_FnCall;
 
 struct C_Assign;
 
@@ -49,7 +49,7 @@ AST_DECL_FREE(C_Identifier);
 C_Identifier C_Identifier_new(u32 pos, a_string ident);
 
 typedef enum {
-    C_LV_IDENT = 0,
+    C_LV_IDENTIFIER = 0,
     C_LV_ARRAY_INDEX,
 } C__LvalueKind;
 
@@ -92,11 +92,12 @@ typedef enum C_PrimitiveType {
     C_CHAR,
     C_STRING,
     C_BOOLEAN,
+    C_ANY,
     C_NULL,
 } C_PrimitiveType;
 
 typedef struct C_ArrayType {
-    struct C_Expr* index;
+    struct C_Expr* size;
     struct C_Type* inner;
     u32 pos;
 } C_ArrayType;
@@ -175,15 +176,14 @@ AST_DECL_FREE(C_ArrayIndex);
 C_ArrayIndex C_ArrayIndex_new(u32 pos, struct C_Expr ident,
                               struct C_Expr index);
 
-typedef struct C_Expr_FnCall {
+typedef struct C_FnCall {
     struct C_Identifier* ident;
     struct C_ArgumentList* args;
     u32 pos;
-} C_Expr_FnCall;
-AST_DECL_FREE(C_Expr_FnCall);
+} C_FnCall;
+AST_DECL_FREE(C_FnCall);
 
-C_Expr_FnCall C_Expr_FnCall_new(u32 pos, C_Identifier ident,
-                                C_ArgumentList args);
+C_FnCall C_FnCall_new(u32 pos, C_Identifier ident, C_ArgumentList args);
 
 typedef struct C_Assign {
     struct C_Lvalue* lhs;
@@ -225,7 +225,8 @@ AST_DECL_FREE(C_If);
 C_If C_If_new(u32 pos, struct C_If_Branch* branches, u32 branches_len);
 
 typedef enum C_ExprKind {
-    C_EXPR_UNARYOP = 0,
+    C_EXPR_IDENTIFIER = 0,
+    C_EXPR_UNARYOP,
     C_EXPR_BINOP,
     C_EXPR_ARRAY_INDEX,
     C_EXPR_FNCALL,
@@ -234,10 +235,11 @@ typedef enum C_ExprKind {
 } C_ExprKind;
 
 typedef union C_ExprData {
+    struct C_Identifier* ident;
     struct C_UnaryExpr unary;
     struct C_BinaryExpr binary;
     struct C_ArrayIndex array_index;
-    struct C_Expr_FnCall fncall;
+    struct C_FnCall fn_call;
     struct C_Assign assign;
     struct C_If _if;
 } C_ExprData;
@@ -248,10 +250,11 @@ typedef struct C_Expr {
 } C_Expr;
 AST_DECL_FREE(C_Expr);
 
+C_Expr C_Expr_new_identifier(C_Identifier i);
 C_Expr C_Expr_new_unary(C_UnaryExpr e);
 C_Expr C_Expr_new_binary(C_BinaryExpr e);
 C_Expr C_Expr_new_array_index(C_ArrayIndex e);
-C_Expr C_Expr_new_fncall(C_Expr_FnCall e);
+C_Expr C_Expr_new_fncall(C_FnCall e);
 C_Expr C_Expr_new_assign(C_Assign e);
 C_Expr C_Expr_new_if(C_If e);
 

@@ -124,6 +124,16 @@ typedef double f64;
         *(ident) = (val);                                                      \
     } while (0)
 
+#define if_let(type, id, expr)                                                 \
+    type id;                                                                   \
+    if ((id = (expr).data, (expr)).have)
+
+#define while_let(type, id, expr)                                              \
+    type id;                                                                   \
+    while ((id = (expr).data, (expr)).have)
+
+#define let(id, expr) ((id = (expr).data, (expr)).have)
+
 #define VERSION "0.1.0"
 
 #endif

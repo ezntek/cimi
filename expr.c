@@ -25,7 +25,7 @@ void C_Identifier_free(C_Identifier* id) {
 }
 
 AST_IMPL_FREE(C_Lvalue, lv) {
-    if (lv->kind == C_LV_IDENT) {
+    if (lv->kind == C_LV_IDENTIFIER) {
         C_Identifier_free(lv->data.ident);
         free(lv->data.ident);
     } else if (lv->kind == C_LV_ARRAY_INDEX) {
@@ -53,21 +53,21 @@ C_Lvalue C_Lvalue_new_array_index(u32 pos, struct C_ArrayIndex array_index) {
 C_ArrayType C_ArrayType_new(u32 pos, C_Expr index, C_Type inner) {
     AST_INIT_NODE(C_ArrayType);
 
-    make(C_Expr, res.index, index);
+    make(C_Expr, res.size, index);
     make(C_Type, res.inner, inner);
 
     return res;
 }
 
 AST_IMPL_FREE(C_ArrayType, s) {
-    C_Expr_free(s->index);
+    C_Expr_free(s->size);
     C_Type_free(s->inner);
 
-    if (s->index)
-        free(s->index);
+    if (s->size)
+        free(s->size);
 
     if (s->inner)
-        free(s->index);
+        free(s->size);
 }
 
 C_Type C_Type_new_primitive(u32 pos, C_PrimitiveType t) {
@@ -168,7 +168,7 @@ AST_IMPL_FREE(C_ArrayIndex, idx) {
     free(idx->ident);
 }
 
-void C_Expr_FnCall_free(C_Expr_FnCall* c) {
+void C_FnCall_free(C_FnCall* c) {
     C_Identifier_free(c->ident);
     C_ArgumentList_free(c->args);
 
@@ -241,6 +241,15 @@ C_If C_If_new(u32 pos, struct C_If_Branch* branches, u32 branches_len) {
         .pos = pos, .branches = branches, .branches_len = branches_len};
 }
 
+C_Expr C_Expr_new_identifier(C_Identifier ident) {
+    C_Expr res = {0};
+
+    res.kind = C_EXPR_IDENTIFIER;
+    make(C_Identifier, res.data.ident, ident);
+
+    return res;
+}
+
 C_Expr C_Expr_new_unary(C_UnaryExpr e) {
     return (C_Expr){.kind = C_EXPR_UNARYOP, .data.unary = e};
 }
@@ -252,8 +261,8 @@ C_Expr C_Expr_new_array_index(C_ArrayIndex e) {
     return (C_Expr){.kind = C_EXPR_ARRAY_INDEX, .data.array_index = e};
 }
 
-C_Expr C_Expr_new_fncall(C_Expr_FnCall e) {
-    return (C_Expr){.kind = C_EXPR_FNCALL, .data.fncall = e};
+C_Expr C_Expr_new_fn_call(C_FnCall e) {
+    return (C_Expr){.kind = C_EXPR_FNCALL, .data.fn_call = e};
 }
 
 C_Expr C_Expr_new_assign(C_Assign e) {
@@ -273,6 +282,10 @@ AST_IMPL_FREE(C_If, s) {
 
 AST_IMPL_FREE(C_Expr, e) {
     switch (e->kind) {
+        case C_EXPR_IDENTIFIER: {
+            C_Identifier_free(e->data.ident);
+            free(e->data.ident);
+        } break;
         case C_EXPR_UNARYOP: {
             C_UnaryExpr_free(&e->data.unary);
         } break;
@@ -283,7 +296,7 @@ AST_IMPL_FREE(C_Expr, e) {
             C_ArrayIndex_free(&e->data.array_index);
         } break;
         case C_EXPR_FNCALL: {
-            C_Expr_FnCall_free(&e->data.fncall);
+            C_FnCall_free(&e->data.fn_call);
         } break;
         case C_EXPR_ASSIGN: {
             C_Assign_free(&e->data.assign);
