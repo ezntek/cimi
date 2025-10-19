@@ -60,6 +60,7 @@ typedef double f64;
 #define S_HIDECURSOR "\033[?25l"
 
 #define LENGTH(lst) (i32)(sizeof(lst) / sizeof(lst[0]))
+#define RINTPC(T)   *(T*)&
 
 #define check_alloc(ptr)                                                       \
     do {                                                                       \
@@ -127,6 +128,10 @@ typedef double f64;
 #define if_let(type, id, expr)                                                 \
     type id;                                                                   \
     if ((id = (expr).data, (expr)).have)
+
+#define let_else(type, id, expr)                                               \
+    type id;                                                                   \
+    if (!(id = (expr).data, (expr)).have)
 
 #define while_let(type, id, expr)                                              \
     type id;                                                                   \

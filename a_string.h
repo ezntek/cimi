@@ -9,8 +9,10 @@
 #ifndef _A_STRING_H
 #define _A_STRING_H
 
+#include "common.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -22,10 +24,10 @@ typedef struct {
     char* data;
 
     // length of the string.
-    size_t len;
+    usize len;
 
     // capacity of the string. includes the null terminator.
-    size_t cap;
+    usize cap;
 } a_string;
 
 /**
@@ -39,7 +41,7 @@ a_string as_new(void);
  *
  * @param cap the capacity of the string.
  */
-a_string as_with_capacity(size_t cap);
+a_string as_with_capacity(usize cap);
 
 /**
  * clears the string with null terminators, keeping the capacity.
@@ -83,7 +85,7 @@ void as_copy_cstr(a_string* dest, const char* src);
  * @param src the source string
  * @param chars the number of chars
  */
-void as_ncopy(a_string* dest, const a_string* src, size_t chars);
+void as_ncopy(a_string* dest, const a_string* src, usize chars);
 
 /**
  * Copies N bytes of one C string to an a_string.
@@ -92,7 +94,7 @@ void as_ncopy(a_string* dest, const a_string* src, size_t chars);
  * @param src the source string
  * @param chars the number of chars
  */
-void as_ncopy_cstr(a_string* dest, const char* src, size_t chars);
+void as_ncopy_cstr(a_string* dest, const char* src, usize chars);
 
 /**
  * reserves a specific capacity on an a_string.
@@ -100,7 +102,7 @@ void as_ncopy_cstr(a_string* dest, const char* src, size_t chars);
  * @param s the string to be modified
  * @param cap the new capacity of the string
  */
-void as_reserve(a_string* s, size_t cap);
+void as_reserve(a_string* s, usize cap);
 
 /**
  * creates an a_string from a C string.
@@ -149,7 +151,7 @@ a_string as_asprintf(const char* format, ...);
  * @param format the format
  * @param ... format args
  */
-size_t as_sprintf(a_string* dest, const char* format, ...);
+usize as_sprintf(a_string* dest, const char* format, ...);
 
 /**
  * prints an a_string to a file stream.
@@ -198,7 +200,7 @@ int as_println(const a_string* s);
  * @param cap the maximum capacity of the string to be entered.
  * @param stream the file stream.
  */
-char* as_fgets(a_string* buf, size_t cap, FILE* stream);
+char* as_fgets(a_string* buf, usize cap, FILE* stream);
 
 /**
  * reads a single line from a file.
@@ -296,7 +298,7 @@ char as_pop(a_string* s);
  * @param s the target string
  * @return the last character
  */
-char as_at(const a_string* s, size_t idx);
+char as_at(const a_string* s, usize idx);
 
 /**
  * gets the first character from an a_string.
@@ -403,7 +405,7 @@ void as_inplace_tolower(a_string* s);
 bool as_equal(const a_string* lhs, const a_string* rhs);
 
 /**
- * checks if 2 a_strings are the same.
+ * checks if an a_string is equal to a C string, case insensitive
  *
  * @param lhs the first string
  * @param rhs the other string
@@ -419,6 +421,14 @@ bool as_equal_cstr(const a_string* lhs, const char* rhs);
 bool as_equal_case_insensitive(const a_string* lhs, const a_string* rhs);
 
 /**
+ * checks if an a_string is equal to a C string, case insensitive
+ *
+ * @param lhs the first string
+ * @param rhs the other string
+ */
+bool as_equal_case_insensitive(const a_string* lhs, const a_string* rhs);
+
+/**
  * slices an a_string from begin to end, from a C string, discluding end.
  *
  * @param src the source string
@@ -426,7 +436,7 @@ bool as_equal_case_insensitive(const a_string* lhs, const a_string* rhs);
  * @param end the end
  * @return the new string
  */
-a_string as_slice_cstr(const char* src, size_t begin, size_t end);
+a_string as_slice_cstr(const char* src, usize begin, usize end);
 
 /**
  * slices an a_string from begin to end, discluding end.
@@ -436,7 +446,7 @@ a_string as_slice_cstr(const char* src, size_t begin, size_t end);
  * @param end the end
  * @return the new string
  */
-a_string as_slice(const a_string* src, size_t begin, size_t end);
+a_string as_slice(const a_string* src, usize begin, usize end);
 
 /**
  * checks if a target string is contained within a list of a_strings.
@@ -445,7 +455,7 @@ a_string as_slice(const a_string* src, size_t begin, size_t end);
  * @param haystacks the strings that the string might be
  * @param len the number of strings in the haystack
  */
-bool as_in(const a_string* needle, const a_string** haystack, size_t len);
+bool as_in(const a_string* needle, const a_string** haystack, usize len);
 
 /**
  * checks if a target string is contained within a list of C strings.
@@ -454,6 +464,33 @@ bool as_in(const a_string* needle, const a_string** haystack, size_t len);
  * @param haystacks the strings that the string might be
  * @param len the number of strings in the haystack
  */
-bool as_in_cstr(const a_string* needle, const char** haystack, size_t len);
+bool as_in_cstr(const a_string* needle, const char** haystack, usize len);
+
+/**
+ * converts an a_string to a double.
+ *
+ * this is basically a wrapper around `strtod`. check strtod(3) for info
+ * regarding the return value on overflow or underflow, and supported inputs.
+ *
+ * @param src the source string to convert
+ * @param res pointer to the resultant number, which will be set on success.
+ * @return index of first invalid character. if it is equal to the length of the
+ * string, the conversion is successful. returns ERANGE on a range error.
+ */
+usize as_to_double(const a_string* src, double* res);
+
+/**
+ * converts an a_string to a int64_t.
+ *
+ * this is basically a wrapper around `strtoll`. check strtol(3) for info
+ * regarding the return value on overflow/underflow, and supported inputs.
+ *
+ * @param src the source
+ * @param res pointer to the resultant number, which will be set on success.
+ * @param base base of the number. check strtol(3) for more info.
+ * @return index of the first invalid character, if it is equal to the length of
+ * the string, the conversion is successful. returns ERANGE on a range error.
+ */
+usize as_to_integer(const a_string* src, int64_t* res, int base);
 
 #endif // _A_STRING_H

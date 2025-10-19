@@ -74,7 +74,7 @@ void ap_visit_primitive_type(AstPrinter* p, C_PrimitiveType t) {
         case C_STRING: {
             p->write(p, "string");
         } break;
-        case C_BOOLEAN: {
+        case C_BOOL: {
             p->write(p, "boolean");
         } break;
         case C_ANY: {

@@ -624,13 +624,6 @@ static bool lx__is_number(const a_string* word) {
         if (isdigit(cur))
             continue;
 
-        if (cur == '_') {
-            if (i == 0)
-                return false;
-            else
-                continue;
-        }
-
         if (cur == '.') {
             if (found_decimal)
                 return false;
@@ -646,67 +639,14 @@ static bool lx__is_number(const a_string* word) {
     return true;
 }
 
-static char lx__resolve_escape(char ch) {
-    switch (ch) {
-        case 'a': {
-            return '\a';
-        } break;
-        case 'b': {
-            return '\b';
-        } break;
-        case 'e': {
-            return '\033';
-        } break;
-        case 'n': {
-            return '\n';
-        } break;
-        case 'r': {
-            return '\r';
-        } break;
-        case 't': {
-            return '\t';
-        } break;
-        case '\\': {
-            return '\\';
-        } break;
-        case '\'': {
-            return '\'';
-        } break;
-        case '"': {
-            return '\"';
-        } break;
-        default: return ch;
-    }
-}
-
 static bool lx_next_literal(Lexer* l, const a_string* word) {
     char* p;
     if ((p = strchr("\"'", as_first(word)))) {
         if (word->len == 1)
             unreachable;
 
-        a_string res = as_new();
-        char ch;
-        for (usize i = 1; i < word->len - 1; ++i) {
-            ch = as_at(word, i);
-            if (ch == '\\') {
-                // last character is an escape
-                if (i + 1 == word->len - 1) {
-                    l->error = ERROR(BAD_ESCAPE, word->len);
-                    return false;
-                }
-                ch = lx__resolve_escape(as_at(word, ++i));
-            }
-
-            as_append_char(&res, ch);
-        }
-
+        a_string res = as_slice(word, 1, word->len - 1);
         TokenKind k = (*p == '\'') ? TOK_LITERAL_CHAR : TOK_LITERAL_STRING;
-
-        if (k == TOK_LITERAL_CHAR && res.len > 1) {
-            l->error = ERROR(CHAR_LITERAL_TOO_LONG, word->len);
-            return false;
-        }
 
         l->token = (Token){
             .kind = k,

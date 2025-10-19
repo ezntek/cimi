@@ -7,6 +7,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+#include "lexertypes.h"
 #define _POSIX_C_SOURCE 200809L
 #define _GNU_SOURCE
 
@@ -15,6 +16,8 @@
 #include "a_string.h"
 #include "common.h"
 #include "lexer.h"
+
+// #include "tests/ast_printer.c"
 
 i32 main(i32 argc, char* argv[argc]) {
     argv++;

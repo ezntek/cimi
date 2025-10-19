@@ -19,24 +19,14 @@
 #include "common.h"
 
 a_string as_new(void) {
-    a_string res = {
-        .len = 0,
-        .cap = 8,
-    };
-
-    res.data = calloc(res.cap, 1); // sizeof(char)
-    if (res.data == NULL)
-        return as_new_invalid();
-
-    return res;
+    return as_with_capacity(8);
 }
 
-a_string as_with_capacity(size_t cap) {
+a_string as_with_capacity(usize cap) {
     a_string res = {.len = 0, .cap = cap};
 
     res.data = calloc(res.cap, 1); // sizeof(char)
-    if (res.data == NULL)
-        return as_new_invalid();
+    check_alloc(res.data);
 
     return res;
 }
@@ -76,7 +66,7 @@ void as_copy_cstr(a_string* dest, const char* src) {
     if (src == NULL)
         panic("source C string is null!");
 
-    size_t len = strlen(src);
+    usize len = strlen(src);
     if (len + 1 > dest->cap) {
         as_reserve(dest, len);
     }
@@ -88,7 +78,7 @@ void as_copy_cstr(a_string* dest, const char* src) {
     }
 }
 
-void as_ncopy(a_string* dest, const a_string* src, size_t chars) {
+void as_ncopy(a_string* dest, const a_string* src, usize chars) {
     if (!as_valid(dest))
         panic("cannot operate on invalid a_string!");
     if (!as_valid(src))
@@ -103,7 +93,7 @@ void as_ncopy(a_string* dest, const a_string* src, size_t chars) {
     dest->len = chars;
 }
 
-void as_ncopy_cstr(a_string* dest, const char* src, size_t chars) {
+void as_ncopy_cstr(a_string* dest, const char* src, usize chars) {
     if (!as_valid(dest))
         panic("cannot operate on invalid a_string!");
     if (src == NULL)
@@ -118,7 +108,7 @@ void as_ncopy_cstr(a_string* dest, const char* src, size_t chars) {
     dest->len = chars;
 }
 
-void as_reserve(a_string* s, size_t cap) {
+void as_reserve(a_string* s, usize cap) {
     if (!as_valid(s)) {
         panic("the string is invalid");
     }
@@ -168,7 +158,7 @@ a_string as_asprintf(const char* restrict format, ...) {
     va_list argscopy;
     va_copy(argscopy, args);
 
-    size_t len = vsnprintf(NULL, 0, format, argscopy);
+    usize len = vsnprintf(NULL, 0, format, argscopy);
     a_string res = as_with_capacity(len + 1);
     vsnprintf(res.data, res.cap, format, args);
 
@@ -178,13 +168,13 @@ a_string as_asprintf(const char* restrict format, ...) {
     return res;
 }
 
-size_t as_sprintf(a_string* dest, const char* restrict format, ...) {
+usize as_sprintf(a_string* dest, const char* restrict format, ...) {
     va_list args;
     va_start(args, format);
 
     va_list argscopy;
     va_copy(argscopy, args);
-    size_t len = vsnprintf(NULL, 0, format, argscopy);
+    usize len = vsnprintf(NULL, 0, format, argscopy);
 
     if (as_valid(dest)) {
         as_reserve(dest, len + 1);
@@ -192,7 +182,7 @@ size_t as_sprintf(a_string* dest, const char* restrict format, ...) {
         *dest = as_with_capacity(len + 1);
     }
 
-    size_t res = vsnprintf(dest->data, dest->cap, format, args);
+    usize res = vsnprintf(dest->data, dest->cap, format, args);
 
     va_end(args);
 
@@ -215,8 +205,8 @@ int as_println(const a_string* s) {
     return as_fprintln(s, stdout);
 }
 
-char* as_fgets(a_string* buf, size_t cap, FILE* restrict stream) {
-    size_t actual_cap = (cap == 0) ? 8192 : cap;
+char* as_fgets(a_string* buf, usize cap, FILE* restrict stream) {
+    usize actual_cap = (cap == 0) ? 8192 : cap;
     if (as_valid(buf)) {
         as_reserve(buf, actual_cap);
     } else {
@@ -253,7 +243,7 @@ a_string as_read_file(const char* filename) {
     }
 
     fseek(fp, 0, SEEK_END);
-    size_t sz = ftell(fp);
+    usize sz = ftell(fp);
     rewind(fp);
     a_string res = as_with_capacity(sz);
     if (fread(res.data, 1, sz, fp) != sz) {
@@ -278,7 +268,7 @@ a_string as_input(const char* prompt) {
 }
 
 bool as_valid(const a_string* s) {
-    return !(s->len == (size_t)-1 || s->cap == (size_t)-1 || s->data == NULL);
+    return !(s->len == (usize)-1 || s->cap == (usize)-1 || s->data == NULL);
 }
 
 a_string as_new_invalid(void) {
@@ -306,8 +296,8 @@ void as_append_cstr(a_string* s, const char* new) {
     if (new == NULL)
         panic("null string passed to append operation!");
 
-    size_t new_len = strlen(new);
-    size_t required_cap = s->len + new_len + 1;
+    usize new_len = strlen(new);
+    usize required_cap = s->len + new_len + 1;
     if (required_cap > s->cap) {
         while (s->cap < required_cap) {
             as_reserve(s, s->cap * 2);
@@ -341,7 +331,7 @@ char as_pop(a_string* s) {
     return last;
 }
 
-char as_at(const a_string* s, size_t idx) {
+char as_at(const a_string* s, usize idx) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
@@ -376,7 +366,7 @@ a_string as_trim_left(const a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    size_t i = 0;
+    usize i = 0;
     while (i < s->len) { // must check this first, else segfault
         if (strchr(" \n\t\r", s->data[i])) {
             i++;
@@ -392,14 +382,14 @@ a_string as_trim_right(const a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    size_t end = s->len - 1;
+    usize end = s->len - 1;
     while (strchr(" \n\t\r", s->data[end])) { // end >= 0 is always true
         end--;
     }
     end++;
 
     a_string res = as_with_capacity(end + 1);
-    for (size_t i = 0; i < end; i++) {
+    for (usize i = 0; i < end; i++) {
         res.data[i] = s->data[i];
     }
 
@@ -410,8 +400,8 @@ a_string as_trim(const a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    size_t begin = 0;
-    size_t end = s->len - 1;
+    usize begin = 0;
+    usize end = s->len - 1;
 
     while (begin < s->len) { // must check this first, else segfault
         if (strchr(" \n\t\r", s->data[begin]) != NULL) {
@@ -430,8 +420,8 @@ a_string as_trim(const a_string* s) {
     a_string res = as_with_capacity(end - begin + 1);
     res.len = end - begin;
 
-    size_t i = 0;
-    for (size_t j = begin; j < end; j++) {
+    usize i = 0;
+    for (usize j = begin; j < end; j++) {
         res.data[i++] = s->data[j];
     }
 
@@ -442,7 +432,7 @@ void as_inplace_trim_left(a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    size_t i = 0;
+    usize i = 0;
     while (i < s->len) { // must check this first, else segfault
         if (strchr(" \n\t\r", s->data[i])) {
             i++;
@@ -458,13 +448,13 @@ void as_inplace_trim_right(a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    size_t end = s->len - 1;
+    usize end = s->len - 1;
     while (strchr(" \n\t\r", s->data[end])) { // end >= 0 is always true
         end--;
     }
     end++;
 
-    size_t oldlen = s->len;
+    usize oldlen = s->len;
     s->len = end + 1;
 
     if (end > s->len)
@@ -475,8 +465,8 @@ void as_inplace_trim(a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    size_t begin = 0;
-    size_t end = s->len - 1;
+    usize begin = 0;
+    usize end = s->len - 1;
 
     while (begin < s->len) { // must check this first, else segfault
         if (isspace(s->data[begin])) {
@@ -492,7 +482,7 @@ void as_inplace_trim(a_string* s) {
 
     end++;
 
-    size_t oldlen = s->len;
+    usize oldlen = s->len;
     s->len = end - begin;
     memmove(&s->data[0], &s->data[begin], s->len);
     if (end > s->len)
@@ -504,7 +494,7 @@ a_string as_toupper(const a_string* s) {
         panic("cannot operate on an invalid a_string!");
 
     a_string res = as_with_capacity(s->len + 1);
-    for (size_t i = 0; i < s->len; i++) {
+    for (usize i = 0; i < s->len; i++) {
         res.data[i] = toupper(s->data[i]);
     }
     res.len = s->len;
@@ -517,7 +507,7 @@ a_string as_tolower(const a_string* s) {
         panic("cannot operate on an invalid a_string!");
 
     a_string res = as_with_capacity(s->len + 1);
-    for (size_t i = 0; i < s->len; i++) {
+    for (usize i = 0; i < s->len; i++) {
         res.data[i] = tolower(s->data[i]);
     }
     res.len = s->len;
@@ -529,7 +519,7 @@ void as_inplace_toupper(a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    for (size_t i = 0; i < s->len; i++) {
+    for (usize i = 0; i < s->len; i++) {
         s->data[i] = toupper(s->data[i]);
     }
 }
@@ -538,7 +528,7 @@ void as_inplace_tolower(a_string* s) {
     if (!as_valid(s))
         panic("cannot operate on an invalid a_string!");
 
-    for (size_t i = 0; i < s->len; i++) {
+    for (usize i = 0; i < s->len; i++) {
         s->data[i] = tolower(s->data[i]);
     }
 }
@@ -554,7 +544,7 @@ bool as_equal(const a_string* lhs, const a_string* rhs) {
         return false;
     }
 
-    for (size_t i = 0; i < lhs->len; i++) {
+    for (usize i = 0; i < lhs->len; i++) {
         if (lhs->data[i] != rhs->data[i]) {
             return false;
         }
@@ -584,7 +574,7 @@ bool as_equal_case_insensitive(const a_string* lhs, const a_string* rhs) {
         return false;
     }
 
-    for (size_t i = 0; i < lhs->len; i++) {
+    for (usize i = 0; i < lhs->len; i++) {
         if (tolower(lhs->data[i]) != tolower(rhs->data[i])) {
             return false;
         }
@@ -603,7 +593,7 @@ bool as_equal_case_insensitive_cstr(const a_string* lhs, const char* rhs) {
     return as_equal_case_insensitive(lhs, &arhs);
 }
 
-a_string as_slice_cstr(const char* src, size_t begin, size_t end) {
+a_string as_slice_cstr(const char* src, usize begin, usize end) {
     if (src == NULL)
         panic("source C string for slice operation is NULL!");
 
@@ -615,25 +605,53 @@ a_string as_slice_cstr(const char* src, size_t begin, size_t end) {
     return res;
 }
 
-a_string as_slice(const a_string* src, size_t begin, size_t end) {
+a_string as_slice(const a_string* src, usize begin, usize end) {
     if (!as_valid(src))
         panic("cannot slice an invalid a_string!");
 
     return as_slice_cstr(src->data, begin, end);
 }
 
-bool as_in(const a_string* needle, const a_string** haystack, size_t len) {
-    for (size_t i = 0; i < len; ++i) {
+bool as_in(const a_string* needle, const a_string** haystack, usize len) {
+    for (usize i = 0; i < len; ++i) {
         if (as_equal(needle, haystack[i]))
             return true;
     }
     return false;
 }
 
-bool as_in_cstr(const a_string* needle, const char** haystack, size_t len) {
-    for (size_t i = 0; i < len; ++i) {
+bool as_in_cstr(const a_string* needle, const char** haystack, usize len) {
+    for (usize i = 0; i < len; ++i) {
         if (as_equal_cstr(needle, haystack[i]))
             return true;
     }
     return false;
+}
+
+usize as_to_double(const a_string* src, double* res) {
+    errno = 0;
+    char* endptr = NULL;
+    const char* nptr = src->data;
+    double dbl = strtod(nptr, &endptr);
+    usize diff = endptr - nptr;
+    if (diff == src->len) {
+        *res = dbl;
+        return diff;
+    } else {
+        return diff;
+    }
+}
+
+usize as_to_integer(const a_string* src, int64_t* res, int base) {
+    errno = 0;
+    char* endptr = NULL;
+    const char* nptr = src->data;
+    int64_t num = (int64_t)strtoll(nptr, &endptr, base);
+    usize diff = endptr - nptr;
+    if (diff == src->len) {
+        *res = num;
+        return diff;
+    } else {
+        return diff;
+    }
 }
