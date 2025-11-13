@@ -7,11 +7,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+#include "expr.h"
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
 #define _POSIX_C_SOURCE 200809L
 
-#include "ast_printer.h"
 #include "a_string.h"
 #include "ast.h"
+#include "ast_printer.h"
 #include "common.h"
 
 void ap_write_stdout(AstPrinter* p, const char* data) {
@@ -30,6 +34,16 @@ void ap_write_string(AstPrinter* p, const char* data) {
     as_append_cstr(&p->buf, data);
 }
 
+#define AP_WRITEF_MAXSIZE 512
+static void ap_writefer(AstPrinter* p, const char* data, ...) {
+    char buf[AP_WRITEF_MAXSIZE] = {0};
+    va_list lst;
+    va_start(lst, data);
+    vsprintf(buf, data, lst);
+    va_end(lst);
+    p->write(p, buf);
+}
+
 AstPrinter ap_new(void) {
     return ap_new_stdout_writer();
 }
@@ -37,18 +51,21 @@ AstPrinter ap_new(void) {
 AstPrinter ap_new_stdout_writer(void) {
     return (AstPrinter){
         .write = ap_write_stdout,
+        .writef = ap_writefer,
     };
 }
 
 AstPrinter ap_new_stderr_writer(void) {
     return (AstPrinter){
         .write = ap_write_stderr,
+        .writef = ap_writefer,
     };
 }
 
 AstPrinter ap_new_file_writer(FILE* fp) {
     return (AstPrinter){
         .write = ap_write_file,
+        .writef = ap_writefer,
         .fp = fp,
     };
 }
@@ -56,6 +73,7 @@ AstPrinter ap_new_file_writer(FILE* fp) {
 AstPrinter ap_new_string_writer(void) {
     return (AstPrinter){
         .write = ap_write_string,
+        .writef = ap_writefer,
         .buf = as_with_capacity(128),
     };
 }
@@ -114,10 +132,10 @@ void ap_visit_identifier(AstPrinter* p, C_Identifier* id) {
 void ap_visit_lvalue(AstPrinter* p, C_Lvalue* lv) {
     switch (lv->kind) {
         case C_LV_IDENTIFIER: {
-            return ap_visit_identifier(p, lv->data.ident);
+            ap_visit_identifier(p, lv->data.ident);
         } break;
         case C_LV_ARRAY_INDEX: {
-            return ap_visit_array_index(p, lv->data.array_index);
+            ap_visit_array_index(p, lv->data.array_index);
         } break;
     }
 }
@@ -224,6 +242,52 @@ void ap_visit_assign(AstPrinter* p, C_Assign* n) {
     p->write(p, ")");
 }
 
+void ap_visit_literal(AstPrinter* p, C_Literal* l) {
+    switch (l->type) {
+        case C_INT: {
+            p->writef(p, "int(%ld)", l->data._int);
+        } break;
+        case C_FLOAT: {
+            p->writef(p, "float(%lf)", l->data._float);
+        } break;
+        case C_STRING: {
+            if (l->data.string.len > 64) {
+                p->write(p, "<a very long string>");
+            } else {
+                // TODO: escape sequences
+                p->writef(p, "\"%.*s\"", (int)l->data.string.len,
+                          l->data.string.data);
+            }
+        } break;
+        case C_CHAR: {
+            char ch = l->data._char;
+            if (isprint(ch)) {
+                p->writef(p, "'%s'", ch);
+            } else {
+                p->writef(p, "char(%x)", (int)ch);
+            }
+        } break;
+        case C_BOOL: {
+            if (l->data._bool) {
+                p->write(p, "true");
+            } else {
+                p->write(p, "false");
+            }
+        } break;
+        case C_NULL: {
+            p->write(p, "<null>");
+        } break;
+        case C_ANY: {
+            panic("bogus amogus (cannot have an any literal!)");
+        } break;
+    }
+}
+
+void ap_visit_if(AstPrinter* p, C_If* n) {
+    eprintf("not implemented\n");
+    unreachable;
+}
+
 void ap_visit_expr(AstPrinter* p, C_Expr* n) {
     switch (n->kind) {
         case C_EXPR_IDENTIFIER: {
@@ -246,6 +310,9 @@ void ap_visit_expr(AstPrinter* p, C_Expr* n) {
         } break;
         case C_EXPR_IF: {
             ap_visit_if(p, &n->data._if);
+        } break;
+        case C_EXPR_LITERAL: {
+            ap_visit_literal(p, &n->data.literal);
         } break;
     }
 }

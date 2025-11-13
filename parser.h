@@ -17,15 +17,16 @@
 #include "lexer.h"
 #include "lexertypes.h"
 
-A_VECTOR_DECL(Token, Tokens);
-
 typedef struct {
     Lexer lx;
     a_string file_name;
-    Tokens tokens;
+    Token* tokens;
+    usize tokens_len;
+    // state
     u32 error_count;
     u32 cur;
     bool error_reported;
+    bool eof;
 } Parser;
 
 #define DECL_MAYBE(T, name)                                                    \
@@ -56,7 +57,7 @@ DECL_MAYBE(C_Expr, MaybeExpr);
         .have = false                                                          \
     }
 
-Parser ps_new(a_string file_name, Tokens toks);
+Parser ps_new(a_string file_name, Token* toks, usize len);
 void ps_free(Parser* ps);
 MaybeExpr ps_expr(Parser* ps);
 C_Block ps_block(Parser* ps);

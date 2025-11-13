@@ -122,7 +122,6 @@ typedef struct {
     union {
         a_string string; // idents, other literals
         bool boolean;    // bool literals
-        u8 null;         // dummy field
     } data;
 } Token;
 

@@ -7,6 +7,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+#include "lexertypes.h"
 #define _POSIX_C_SOURCE 200809L
 
 #include <ctype.h>
@@ -39,12 +40,12 @@
 
 #define TOKEN(kfull, sp)                                                       \
     (Token) {                                                                  \
-        .kind = (kfull), .data = {{NULL}}, .pos = (POS(sp))                    \
+        .kind = (kfull), .pos = (POS(sp))                                      \
     }
 
 #define TOK(k, sp)                                                             \
     (Token) {                                                                  \
-        .kind = TOK_##k, .data = {{NULL}}, .pos = (POS(sp))                    \
+        .kind = TOK_##k, .pos = (POS(sp))                                      \
     }
 
 #define ERROR(k, sp)                                                           \
@@ -79,7 +80,7 @@ Token token_new_ident(const char* str) {
     a_string s = astr(str);
     return (Token){
         .kind = TOK_IDENT,
-        .data = {s},
+        .data.string = s,
     };
 }
 
@@ -88,6 +89,21 @@ void token_free(Token* t) {
         t->kind == TOK_LITERAL_CHAR || t->kind == TOK_LITERAL_NUMBER) {
         as_free(&t->data.string);
     }
+}
+
+Token token_dupe(Token* t) {
+    Token new = {
+        .kind = t->kind,
+        .pos = t->pos,
+    };
+    if (t->kind == TOK_IDENT || t->kind == TOK_LITERAL_STRING ||
+        t->kind == TOK_LITERAL_CHAR || t->kind == TOK_LITERAL_NUMBER) {
+        new.data.string = as_dupe(&t->data.string);
+    } else if (t->kind == TOK_LITERAL_BOOLEAN) {
+        new.data.boolean = t->data.boolean;
+    }
+
+    return new;
 }
 
 a_string token_kind_to_string(TokenKind k) {
@@ -537,7 +553,6 @@ static bool lx_next_single_symbol(Lexer* l) {
 
     l->token = (Token){
         .kind = t,
-        .data.null = 0,
         .pos = POS_HERE(1),
     };
 
@@ -560,18 +575,22 @@ static bool lx_next_word(Lexer* l, a_string* res) {
 
     do {
         bool stop;
+
+        if (!IN_BOUNDS)
+            break;
+
         if (delimited_literal)
-            stop = strchr("\n\r", CUR) || strchr(DELIMS, CUR);
+            stop = CUR == delim;
         else
             stop = lx_is_operator_start(CUR) || lx_is_separator(CUR) ||
-                   isspace(CUR);
+                   isspace(CUR) || strchr(DELIMS, CUR);
 
         if (CUR == '\\') {
             len++;
             l->cur++;
         }
 
-        if (stop || !IN_BOUNDS)
+        if (stop)
             break;
 
         len++;
@@ -579,7 +598,11 @@ static bool lx_next_word(Lexer* l, a_string* res) {
     } while (1);
 
     if (delimited_literal) {
-        len++;
+        if (!IN_BOUNDS) {
+            l->error = ERROR(EOF, 1);
+            return false;
+        }
+
         if (CUR != delim) {
             if (strchr(DELIMS, CUR) != NULL)
                 l->error = ERROR(MISMATCHED_DELIMITER, len);
@@ -588,10 +611,8 @@ static bool lx_next_word(Lexer* l, a_string* res) {
             return false;
         } else {
             l->cur++;
+            len++;
         }
-    } else if (!IN_BOUNDS) {
-        l->error = ERROR(EOF, 1);
-        return false;
     }
 
     *res = as_new();
@@ -617,6 +638,10 @@ static bool lx_next_keyword(Lexer* l, const a_string* word) {
 }
 
 static bool lx__is_number(const a_string* word) {
+    // edge case: single decimal
+    if (as_first(word) == '.' && word->len == 1)
+        return false;
+
     bool found_decimal = false;
     for (usize i = 0; i < word->len; i++) {
         char cur = as_at(word, i);
@@ -691,7 +716,8 @@ static bool lx_next_literal(Lexer* l, const a_string* word) {
 }
 
 static bool lx__is_ident(const a_string* s) {
-    if (!isalpha(as_first(s)))
+    char first = as_first(s);
+    if (!isalpha(first) && first != '_')
         return false;
 
     for (size_t i = 0; i < s->len; i++) {

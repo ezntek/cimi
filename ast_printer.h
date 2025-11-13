@@ -18,9 +18,11 @@ struct AstPrinter;
 // boilerplate
 
 typedef void (*AstPrinterWriter)(struct AstPrinter*, const char*);
+typedef void (*AstPrinterWritefer)(struct AstPrinter*, const char*, ...);
 
 typedef struct AstPrinter {
     AstPrinterWriter write;
+    AstPrinterWritefer writef;
     FILE* fp;     // null if file writer is not used
     a_string buf; // for the string writer
     u32 indent;
@@ -55,6 +57,9 @@ void ap_visit_fn_call(AstPrinter* p, C_FnCall* n);
 
 void ap_visit_assign(AstPrinter* p, C_Assign* n);
 void ap_visit_if(AstPrinter* p, C_If* n);
+
+void ap_visit_literal(AstPrinter* p, C_Literal* l);
+
 void ap_visit_expr(AstPrinter* p, C_Expr* n);
 
 #endif // _AST_PRINTER_H

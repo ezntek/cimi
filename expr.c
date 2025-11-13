@@ -67,7 +67,7 @@ AST_IMPL_FREE(C_Type, t) {
 C_Literal C_Literal_new_string(Pos pos, a_string string) {
     return (C_Literal){
         .pos = pos,
-        .t = C_STRING,
+        .type = C_STRING,
         .data.string = as_dupe(&string),
     };
 }
@@ -75,7 +75,7 @@ C_Literal C_Literal_new_string(Pos pos, a_string string) {
 C_Literal C_Literal_new_char(Pos pos, char _char) {
     return (C_Literal){
         .pos = pos,
-        .t = C_CHAR,
+        .type = C_CHAR,
         .data._char = _char,
     };
 }
@@ -83,7 +83,7 @@ C_Literal C_Literal_new_char(Pos pos, char _char) {
 C_Literal C_Literal_new_bool(Pos pos, bool _bool) {
     return (C_Literal){
         .pos = pos,
-        .t = C_BOOL,
+        .type = C_BOOL,
         .data._bool = _bool,
     };
 }
@@ -91,7 +91,7 @@ C_Literal C_Literal_new_bool(Pos pos, bool _bool) {
 C_Literal C_Literal_new_int(Pos pos, i64 _int) {
     return (C_Literal){
         .pos = pos,
-        .t = C_INT,
+        .type = C_INT,
         .data._int = _int,
     };
 }
@@ -99,7 +99,7 @@ C_Literal C_Literal_new_int(Pos pos, i64 _int) {
 C_Literal C_Literal_new_float(Pos pos, f64 _float) {
     return (C_Literal){
         .pos = pos,
-        .t = C_FLOAT,
+        .type = C_FLOAT,
         .data._float = _float,
     };
 }
@@ -107,7 +107,7 @@ C_Literal C_Literal_new_float(Pos pos, f64 _float) {
 C_Literal C_Literal_new_null(Pos pos) {
     return (C_Literal){
         .pos = pos,
-        .t = C_NULL,
+        .type = C_NULL,
     };
 }
 
@@ -326,7 +326,7 @@ C_Expr C_Expr_new_literal(C_Literal e) {
 }
 
 AST_IMPL_FREE(C_Literal, l) {
-    if (l->t == C_STRING) {
+    if (l->type == C_STRING) {
         as_free(&l->data.string);
     }
 }

@@ -82,7 +82,7 @@ C_Type C_Type_new_array(Pos pos, C_ArrayType t);
 
 typedef struct C_Literal {
     Pos pos;
-    C_PrimitiveType t;
+    C_PrimitiveType type;
     union {
         a_string string;
         char _char;

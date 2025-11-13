@@ -2,12 +2,12 @@ CC ?= cc
 LD ?= ld
 INCLUDE = 
 
-SRC = a_string.c lexer.c expr.c stmt.c parser.c
+SRC = a_string.c lexer.c expr.c stmt.c parser.c ast_printer.c
 OBJ = $(SRC:.c=.o)
 HEADERS = common.h a_vector.h $(SRC:.c=.h)
 
-RELEASE_CFLAGS = -O2 -Wall -Wextra -pedantic $(INCLUDE) 
-DEBUG_CFLAGS = -O0 -g -Wall -Wextra -pedantic -fno-stack-protector -fsanitize=address $(INCLUDE)
+RELEASE_CFLAGS = -std=c99 -O2 -Wall -Wextra -pedantic $(INCLUDE) 
+DEBUG_CFLAGS = -std=c99 -O0 -g -Wall -Wextra -pedantic -fno-stack-protector -fsanitize=address $(INCLUDE)
 TARBALLFILES = Makefile LICENSE.md README.md 3rdparty $(SRC) $(HEADERS) main.c 
 
 TARGET=debug
@@ -57,6 +57,6 @@ tarball:
 distclean: clean cleandeps
 
 clean:
-	rm -rf cimi cimi.tar.gz cimi $(OBJ)
+	rm -rf cimi cimi.tar.gz cimi $(OBJ) main.o
 
 .PHONY: clean cleanall

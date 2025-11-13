@@ -212,6 +212,7 @@ char* as_fgets(a_string* buf, usize cap, FILE* restrict stream) {
     } else {
         *buf = as_with_capacity(actual_cap);
     }
+    errno = 0;
     char* fgets_res = fgets(buf->data, actual_cap, stream);
     if (fgets_res == NULL)
         return NULL;
@@ -230,7 +231,7 @@ bool as_read_line(a_string* buf, FILE* restrict stream) {
 
     // resize buf to appropriate size.
     as_reserve(buf, buf->len + 1);
-    return buf;
+    return true;
 }
 
 a_string as_read_file(const char* filename) {

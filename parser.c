@@ -8,6 +8,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 #include "expr.h"
+#include "stmt.h"
 #include <ctype.h>
 #include <errno.h>
 #define _POSIX_C_SOURCE 200809L
@@ -24,19 +25,16 @@
 #include "lexertypes.h"
 #include "parser.h"
 
-A_VECTOR_IMPL(Token, Tokens);
-
 #define MAX_ERROR_COUNT 20
 
-Parser ps_new(a_string file_name, Tokens toks) {
-    Parser p = {.tokens = toks, .file_name = file_name};
+Parser ps_new(a_string file_name, Token* toks, usize len) {
+    Parser p = {.tokens = toks, .tokens_len = len, .file_name = file_name};
     return p;
 }
 
 void ps_free(Parser* ps) {
     lx_free(&ps->lx);
     as_free(&ps->file_name);
-    Tokens_free(&ps->tokens);
 }
 
 static MaybeToken ps_consume(Parser* ps);
@@ -54,38 +52,48 @@ static void ps_diag_expected(Parser* ps, const char* thing);
 static void ps_diag_and_skip(Parser* ps, const char* format, ...);
 
 static MaybeToken ps_consume(Parser* ps) {
-    if (++ps->cur >= ps->tokens.len)
+    if (++ps->cur >= ps->tokens_len) {
+        ps->eof = true;
         return NO_TOKEN;
-    else
-        return HAVE_TOKEN(&ps->tokens.data[ps->cur - 1]);
+    } else {
+        return HAVE_TOKEN(&ps->tokens[ps->cur - 1]);
+    }
 }
 
 static MaybeToken ps_peek(Parser* ps) {
-    if (ps->cur < ps->tokens.len)
-        return HAVE_TOKEN(&ps->tokens.data[ps->tokens.len - 1]);
-    else
+    if (ps->cur < ps->tokens_len) {
+        return HAVE_TOKEN(&ps->tokens[ps->cur]);
+    } else {
+        ps->eof = true;
         return NO_TOKEN;
+    }
 }
 
 static MaybeToken ps_peek_next(Parser* ps) {
-    if (ps->cur + 1 < ps->tokens.len)
-        return HAVE_TOKEN(&ps->tokens.data[ps->cur + 1]);
-    else
+    if (ps->cur + 1 < ps->tokens_len) {
+        return HAVE_TOKEN(&ps->tokens[ps->cur + 1]);
+    } else {
+        ps->eof = true;
         return NO_TOKEN;
+    }
 }
 
 static MaybeToken ps_prev(Parser* ps) {
-    if (ps->cur - 1 < ps->tokens.len)
-        return HAVE_TOKEN(&ps->tokens.data[ps->cur - 1]);
-    else
+    if (ps->cur - 1 < ps->tokens_len) {
+        return HAVE_TOKEN(&ps->tokens[ps->cur - 1]);
+    } else {
+        ps->eof = true;
         return NO_TOKEN;
+    }
 }
 
 static MaybeToken ps_get(Parser* ps, u32 idx) {
-    if (idx < ps->tokens.len)
-        return HAVE_TOKEN(&ps->tokens.data[idx]);
-    else
+    if (idx < ps->tokens_len) {
+        return HAVE_TOKEN(&ps->tokens[idx]);
+    } else {
+        ps->eof = true;
         return NO_TOKEN;
+    }
 }
 
 static MaybeToken ps_peek_and_expect(Parser* ps, TokenKind expected) {
@@ -105,7 +113,7 @@ static MaybeToken ps_peek_and_expect(Parser* ps, TokenKind expected) {
     else {
         ps_diag(ps, "expected token %s, but got no token", expected_s);
     }
-end:
+
     as_free(&expected_s);
     return NO_TOKEN;
 }
@@ -263,7 +271,7 @@ static bool is_int(a_string* s) {
     char ch;
     for (usize i = 1; i < s->len; ++i) {
         ch = as_at(s, i);
-        if (!isdigit(ch))
+        if (!isdigit(ch) && ch != '_')
             return false;
     }
 
@@ -272,6 +280,9 @@ static bool is_int(a_string* s) {
 
 static bool is_float(a_string* s) {
     if (!isdigit(as_first(s)) && as_first(s) != '.')
+        return false;
+
+    if (is_int(s))
         return false;
 
     bool found = false;
@@ -283,9 +294,10 @@ static bool is_float(a_string* s) {
             if (found)
                 return false;
             found = true;
+            continue;
         }
 
-        if (!isdigit(ch))
+        if (!isdigit(ch) && ch != '_')
             return false;
     }
 
@@ -337,19 +349,22 @@ MaybeExpr ps_literal(Parser* ps) {
             a_string res = as_new();
 
             char ch;
-            for (usize i = 1; i < s->len - 1; ++i) {
+            for (usize i = 0; i < s->len; ++i) {
                 ch = as_at(s, i);
                 if (ch == '\\') {
                     // last character is an escape
-                    if (i + 1 == s->len - 1) {
+                    if (i == s->len - 1) {
                         ps_diag_at(
                             ps, t->pos, // FIXME: pos
                             "last character of string literal is an escape!");
+                        as_free(&res);
+                        return NO_EXPR;
                     }
                     ch = resolve_escape(as_at(s, ++i));
                     if (ch == -1) {
                         ps_diag_at(ps, t->pos, // FIXME: pos
-                                   "invalid escape sequence in char literal");
+                                   "invalid escape sequence in string literal");
+                        as_free(&res);
                         return NO_EXPR;
                     }
                 }
@@ -424,13 +439,13 @@ ok:
 }
 
 MaybeExpr ps_unary_expr(Parser* ps) {
-    // TODO: implement
+    return NO_EXPR;
 }
 
 MaybeExpr ps_expr(Parser* ps) {
-    // TODO: implement
+    return ps_literal(ps);
 }
 
 C_Block ps_block(Parser* ps) {
-    // TODO: implement
+    return C_Block_new(NULL, 0);
 }

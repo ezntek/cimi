@@ -210,8 +210,7 @@ char* as_fgets(a_string* buf, usize cap, FILE* stream);
  *
  * @param buf the target buffer to write into, it can be either valid or invalid
  * @param stream the target file stream
- * @return true on success, false on error or EOF while no characters have been
- * read.
+ * @return true on success, and false on error
  */
 bool as_read_line(a_string* buf, FILE* stream);
 
