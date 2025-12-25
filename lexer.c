@@ -784,6 +784,27 @@ done:
     return &l->token;
 }
 
+Tokens lx_tokenize(Lexer* l) {
+    Tokens toks = {0};
+    Token* tok = {0};
+    do {
+        tok = lx_next_token(l);
+
+        if (!tok) {
+            lx_perror(l->error.kind, "\033[31;1mlexer error\033[0m");
+            av_clear(&toks);
+            goto end;
+        } else {
+            token_print_long(tok);
+        }
+
+        av_append(&toks, *tok);
+    } while (!tok || tok->kind != TOK_EOF);
+
+end:
+    return toks;
+}
+
 void lx_free(Lexer* l) {
     (void)l;
     lx_kwt_free();

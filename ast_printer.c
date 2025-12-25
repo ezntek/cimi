@@ -7,16 +7,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-#include "expr.h"
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h> // used in macro
 #define _POSIX_C_SOURCE 200809L
 
 #include "a_string.h"
-#include "ast.h"
 #include "ast_printer.h"
 #include "common.h"
+#include "expr.h"
 
 void ap_write_stdout(AstPrinter* p, const char* data) {
     printf("%s", data);

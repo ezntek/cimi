@@ -11,9 +11,12 @@
 #define _LEXER_H
 
 #include "a_string.h"
+#include "a_vector.h"
 #include "common.h"
 
 #include "lexertypes.h"
+
+AV_DECL(Token, Tokens)
 
 Token token_new_ident(const char* str);
 a_string token_kind_to_string(TokenKind k);
@@ -48,5 +51,6 @@ void lx_reset(Lexer* l);
 char* lx_strerror(LexerErrorKind e);
 a_string lx_as_strerror(LexerErrorKind e);
 void lx_perror(LexerErrorKind e, const char* pre);
+Tokens lx_tokenize(Lexer* l);
 
 #endif // _LEXER_H

@@ -15,4 +15,3 @@ while i < max
     echo(i, "! is ", res)
     i += 1
 end
-

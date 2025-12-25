@@ -9,12 +9,15 @@
 #ifndef _A_STRING_H
 #define _A_STRING_H
 
-#include "common.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
+
+#include "common.h"
+
+#define as_fmt(s)  (int)((s).len), ((s).data)
+#define as_fmtp(s) (int)((s)->len), ((s)->data)
 
 /**
  * null terminated, heap-allocated string slice.
@@ -244,11 +247,6 @@ a_string as_input(const char* prompt);
 bool as_valid(const a_string* s);
 
 /**
- * creates an uninitialized, invalid a_string.
- */
-a_string as_new_invalid(void);
-
-/**
  * adds 1 character to an a_string
  *
  * @param s the target string to be concatenated
@@ -263,7 +261,7 @@ void as_append_char(a_string* s, char c);
  * @param new the string to add on. This string will be kept intact and will not
  * be freed.
  */
-void as_append_astr(a_string* s, const a_string* new);
+void as_append_astr(a_string* s, const a_string* n);
 
 /**
  * concatenates a C string to an a_string.
@@ -271,7 +269,7 @@ void as_append_astr(a_string* s, const a_string* new);
  * @param s the target string to be concatenated
  * @param new the string to add on. This is a C string that will be kept intact.
  */
-void as_append_cstr(a_string* s, const char* new);
+void as_append_cstr(a_string* s, const char* n);
 
 /**
  * concatenates a C string to an a_string.
@@ -281,7 +279,7 @@ void as_append_cstr(a_string* s, const char* new);
  * @param new the string to add on. This string will be kept intact and will not
  * be freed.
  */
-void as_append(a_string* s, const char* new);
+void as_append(a_string* s, const char* n);
 
 /**
  * removes the last character from an a_string.

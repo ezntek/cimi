@@ -25,9 +25,6 @@
 
 // #include "tests/ast_printer.c"
 
-A_VECTOR_DECL(Token, Tokens)
-A_VECTOR_IMPL(Token, Tokens)
-
 i32 main(i32 argc, char* argv[argc]) {
     argv++;
     argc--;
@@ -37,28 +34,11 @@ i32 main(i32 argc, char* argv[argc]) {
         s = as_new();
         if (!as_read_line(&s, stdin))
             panic("could not read line from stdin");
-
     } else {
         s = as_read_file(argv[0]);
         if (errno == ENOENT)
             panic("file \"%s\" not found", argv[0]);
     }
-
-    Lexer l = lx_new(s.data, s.len);
-    Tokens toks = Tokens_new();
-    Token* tok = {0};
-    do {
-        tok = lx_next_token(&l);
-
-        if (!tok) {
-            lx_perror(l.error.kind, "\033[31;1mlexer error\033[0m");
-            break;
-        } else {
-            token_print_long(tok);
-        }
-
-        Tokens_append(&toks, *tok);
-    } while (!tok || tok->kind != TOK_EOF);
 
     a_string filename = {0};
     if (argc == 0) {
@@ -66,6 +46,9 @@ i32 main(i32 argc, char* argv[argc]) {
     } else {
         filename = astr(argv[0]);
     }
+
+    Lexer l = lx_new(s.data, s.len);
+    Tokens toks = lx_tokenize(&l);
 
     Parser ps = ps_new(filename, toks.data, toks.len);
     MaybeExpr exp = ps_expr(&ps);
@@ -82,7 +65,7 @@ i32 main(i32 argc, char* argv[argc]) {
     for (usize i = 0; i < toks.len; i++) {
         token_free(&toks.data[i]);
     }
-    Tokens_free(&toks);
+    av_free(&toks);
     lx_free(&l);
     ps_free(&ps);
     as_free(&s);
